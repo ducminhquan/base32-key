@@ -2,6 +2,8 @@
 
 ## Usage
 
+<!-- cspell:disable -->
+
 ### Example (es module)
 
 ```js
@@ -23,6 +25,8 @@ console.log(toHexString('222ET-3ZZGN'));
 // => 'c0ffee'
 ```
 
+<!-- cspell:enable -->
+
 ## A base 32 encoding for binary strings
 
 This document describes a human-readable base 32 encoding for binary strings. It is intended to be used for e.g. product keys, which may be printed on paper and entered using a keyboard. As such, it is important that codes are easy to read, easy to type, and that errors can be detected.
@@ -43,9 +47,11 @@ The encoding algorithm works as follows.
 
 Calculation of check digits is described further below.
 
-<!-- cspell:disable-next-line -->
+<!-- cspell:disable -->
 
 For example, 0x123456789abcdef (hexadecimal) contains 60 bits, so it is split into three groups (0x12345, 0x6789a, 0xbcdef). Each group is encoded separately. 0x12345 in hexadecimal is 00010 01000 11010 00101 in binary, or 2 8 26 5, with a check digit of 12. Using the uppercase alphabet, 2=4, 8=A, 26=U, 5=7, and 12=E, the first group becomes 4AU7E. The complete code is 4AU7E-EY6U6-RMHHH, where E, 6 and H are the check digits.
+
+<!-- cspell:enable -->
 
 The decoding algorithm works in reverse. It should verify the check digit of each group, and inform the user which groups are invalid. The output of the decoding algorithm is the original binary string with padding.
 
@@ -103,11 +109,12 @@ I've decided to favor uppercase characters, but provide an alternative lowercase
 
 Two alphabets are provided:
 
-<!-- cspell:disable-next-line -->
+<!-- cspell:disable -->
 
 - Uppercase alphabet: `23456789ABCDEFGHJKLMNPQRSTUVWXYZ` (preferred).
-<!-- cspell:disable-next-line -->
 - Lowercase alphabet: `abcdefghijkmnpqrstuvwxyz23456789` (alternative).
+
+<!-- cspell:enable -->
 
 The uppercase alphabet consists of digits 2-9, followed by letters A-Z (omitting `O` and `I`).
 
@@ -229,9 +236,11 @@ When calculating CRCs, it is common to invert the bits of the CRC before (and so
 
 Using letters in the encoding alphabet has the risk that some combinations of letters might form offensive words. Crockford eliminates the letter U from his alphabet for this reason.
 
-<!-- cspell:disable-next-line -->
+<!-- cspell:disable -->
 
 However, this is far from a satisfactory solution. Even in English, there are many offensive words using the remaining letters. Even if we went so far as to remove all vowels, offensive abbreviations (like "KKK") or misspellings ("FVCK") would remain. And that's not even considering other languages than English, which may have their own taboo words.
+
+<!-- cspell:enable -->
 
 On the other hand, offensiveness might not be much of a problem in practice. People can easily recognize that codes are not regular English text, and although they might notice an offensive substring if it appears by random chance, they will probably realize this is purely a coincidence, and are unlikely to feel seriously offended.
 
