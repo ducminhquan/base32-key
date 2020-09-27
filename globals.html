@@ -87,7 +87,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/ducminhquan/base32-key/blob/578fd62/src/lib/encode.ts#L93">lib/encode.ts:93</a></li>
+									<li>Defined in <a href="https://github.com/ducminhquan/base32-key/blob/c582485/src/lib/encode.ts#L93">lib/encode.ts:93</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -103,7 +103,7 @@
 								<a href="#example-commonjs" id="example-commonjs" style="color: inherit; text-decoration: none;">
 									<h3>Example (commonjs)</h3>
 								</a>
-								<pre><code class="language-js"><span class="hljs-keyword">var</span> double = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).fromHexString;
+								<pre><code class="language-js"><span class="hljs-keyword">var</span> fromHexString = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).fromHexString;
 <span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;c0ffee&#x27;</span>))
 <span class="hljs-comment">// =&gt; &#x27;222ET-3ZZGN&#x27;</span></code></pre>
 								<dl class="tsd-comment-tags">
@@ -162,7 +162,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/ducminhquan/base32-key/blob/578fd62/src/lib/decode.ts#L80">lib/decode.ts:80</a></li>
+									<li>Defined in <a href="https://github.com/ducminhquan/base32-key/blob/c582485/src/lib/decode.ts#L83">lib/decode.ts:83</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -172,15 +172,15 @@
 								<a href="#example-es-module" id="example-es-module" style="color: inherit; text-decoration: none;">
 									<h3>Example (es module)</h3>
 								</a>
-								<pre><code class="language-js"><span class="hljs-keyword">import</span> { fromHexString } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;base32-key&#x27;</span>
-<span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;c0ffee&#x27;</span>))
-<span class="hljs-comment">// =&gt; 8</span></code></pre>
+								<pre><code class="language-js"><span class="hljs-keyword">import</span> { toHexString } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;base32-key&#x27;</span>
+<span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;222ET-3ZZGN&#x27;</span>))
+<span class="hljs-comment">// =&gt; &#x27;c0ffee&#x27;</span></code></pre>
 								<a href="#example-commonjs" id="example-commonjs" style="color: inherit; text-decoration: none;">
 									<h3>Example (commonjs)</h3>
 								</a>
-								<pre><code class="language-js"><span class="hljs-keyword">var</span> double = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).fromHexString;
-<span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;c0ffee&#x27;</span>))
-<span class="hljs-comment">// =&gt; 8</span></code></pre>
+								<pre><code class="language-js"><span class="hljs-keyword">var</span> toHexString = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).toHexString;
+<span class="hljs-built_in">console</span>.log(toHexString(<span class="hljs-string">&#x27;222ET-3ZZGN&#x27;</span>))
+<span class="hljs-comment">// =&gt; &#x27;c0ffee&#x27;</span></code></pre>
 								<dl class="tsd-comment-tags">
 									<dt>anothernote</dt>
 									<dd><p>Some other value.</p>
@@ -191,6 +191,11 @@
 							<ul class="tsd-parameters">
 								<li>
 									<h5>keyString: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<div class="lead">
+											<p>Input Base32-Key.</p>
+										</div>
+									</div>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> grouped: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = true</span></h5>
@@ -218,7 +223,7 @@
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
-							<p>Base32-Key string.</p>
+							<p>Base-16 string.</p>
 						</li>
 					</ul>
 				</section>
