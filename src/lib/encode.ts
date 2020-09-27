@@ -76,7 +76,7 @@ function numberToBase32(input: readonly number[]) {
  *
  * ### Example (commonjs)
  * ```js
- * var double = require('base32-key').fromHexString;
+ * var fromHexString = require('base32-key').fromHexString;
  * console.log(fromHexString('c0ffee'))
  * // => '222ET-3ZZGN'
  * ```

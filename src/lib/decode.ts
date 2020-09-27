@@ -53,30 +53,33 @@ function decode(
   return baseEncode(base32toBase16(base32num), BASE_16_DIGITS);
 }
 
+// cspell: disable
+
 /**
  * Decode Base32 key to HexString
  *
  * ### Example (es module)
  * ```js
- * import { fromHexString } from 'base32-key'
- * console.log(fromHexString('c0ffee'))
- * // => 8
+ * import { toHexString } from 'base32-key'
+ * console.log(fromHexString('222ET-3ZZGN'))
+ * // => 'c0ffee'
  * ```
  *
  * ### Example (commonjs)
  * ```js
- * var double = require('base32-key').fromHexString;
- * console.log(fromHexString('c0ffee'))
- * // => 8
+ * var toHexString = require('base32-key').toHexString;
+ * console.log(toHexString('222ET-3ZZGN'))
+ * // => 'c0ffee'
  * ```
  *
- * @param base16String - Input HexString.
+ * @param keyString - Input Base32-Key.
  * @param grouped - Split the result into groups.
  * @param checked - Include the checksum into Base32-Key.
  * @param upperCase - Use uppercase or lowercase Base32-Key.
- * @returns Base32-Key string.
+ * @returns Base-16 string.
  * @anotherNote Some other value.
  */
+// cspell: enable
 export const toHexString = (
   keyString: string,
   grouped = true,
