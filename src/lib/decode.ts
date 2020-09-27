@@ -31,9 +31,9 @@ function base32toBase16(base32Numbers: number[]) {
 
 function decode(
   keyString: string,
-  grouped = true,
-  checked = true,
-  upperCase = true
+  grouped: boolean,
+  checked: boolean,
+  upperCase: boolean
 ) {
   const digits = upperCase ? BASE_32_DIGITS : BASE_32_DIGITS_LOWERCASE;
   const base32num = baseDecode(keyString, digits);

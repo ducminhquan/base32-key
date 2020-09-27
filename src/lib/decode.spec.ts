@@ -16,3 +16,13 @@ test('toHexString', (t) => {
     t.is(toHexString(v.lcu, false, false, false), v.hex);
   });
 });
+
+// cspell: disable
+test('toHexString >> invalid', (t) => {
+  t.throws(() => {
+    toHexString('222HQ-XR7UV-M3V7M-AEJJA');
+  });
+  t.throws(() => {
+    toHexString('222HQ-XR7UV-M3V7M-AEJJ');
+  });
+});
