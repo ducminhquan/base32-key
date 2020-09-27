@@ -1,1 +1,1 @@
-export * from './lib/number';
+export { fromHexString } from './lib/encode';
