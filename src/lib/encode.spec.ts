@@ -1,7 +1,7 @@
 import test from 'ava';
 
 import { fromHexString } from './encode';
-import { testVectors } from './test-vectors';
+import { testVectors } from './vectors';
 
 test('fromHexString', (t) => {
   testVectors.map((v) => {

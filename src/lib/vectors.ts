@@ -1,5 +1,18 @@
 // cspell:disable
-const testVectors = [
+
+class ITestVector {
+  hex!: string;
+  ucg!: string;
+  lcg!: string;
+  uc!: string;
+  lc!: string;
+  ucgu!: string;
+  lcgu!: string;
+  ucu!: string;
+  lcu!: string;
+}
+
+const testVectors: ITestVector[] = [
   {
     hex: 'fedcba9876543210',
     ucg: '222HQ-XR7UV-M3V7M-AEJJS',
