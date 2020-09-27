@@ -1,6 +1,16 @@
 # base32-key - A base 32 encoding for binary strings
 
+[![NPM](https://nodei.co/npm/base32-key.png?downloads=true&stars=true)](https://www.npmjs.com/package/base32-key)
+
 ## Usage
+
+### Install
+
+    npm install base32-key
+
+    # or
+
+    yarn add base32-key
 
 <!-- cspell:disable -->
 
