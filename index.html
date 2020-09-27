@@ -1,0 +1,300 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>base32-key</title>
+	<meta name="description" content="Documentation for base32-key">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">base32-key</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1>base32-key</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<a href="#base32-key---a-base-32-encoding-for-binary-strings" id="base32-key---a-base-32-encoding-for-binary-strings" style="color: inherit; text-decoration: none;">
+					<h1>base32-key - A base 32 encoding for binary strings</h1>
+				</a>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
+				</a>
+				<!-- cspell:disable -->
+				<a href="#example-es-module" id="example-es-module" style="color: inherit; text-decoration: none;">
+					<h3>Example (es module)</h3>
+				</a>
+				<pre><code class="language-js"><span class="hljs-keyword">import</span> { fromHexString, toHexString } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;base32-key&#x27;</span>;
+<span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;c0ffee&#x27;</span>));
+<span class="hljs-comment">// =&gt; &#x27;222ET-3ZZGN&#x27;</span>
+<span class="hljs-built_in">console</span>.log(toHexString(<span class="hljs-string">&#x27;222ET-3ZZGN&#x27;</span>));
+<span class="hljs-comment">// =&gt; &#x27;c0ffee&#x27;</span></code></pre>
+				<a href="#example-commonjs" id="example-commonjs" style="color: inherit; text-decoration: none;">
+					<h3>Example (commonjs)</h3>
+				</a>
+				<pre><code class="language-js"><span class="hljs-keyword">var</span> fromHexString = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).fromHexString;
+<span class="hljs-keyword">var</span> toHexString = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;base32-key&#x27;</span>).toHexString;
+<span class="hljs-built_in">console</span>.log(fromHexString(<span class="hljs-string">&#x27;c0ffee&#x27;</span>));
+<span class="hljs-comment">// =&gt; &#x27;222ET-3ZZGN&#x27;</span>
+<span class="hljs-built_in">console</span>.log(toHexString(<span class="hljs-string">&#x27;222ET-3ZZGN&#x27;</span>));
+<span class="hljs-comment">// =&gt; &#x27;c0ffee&#x27;</span></code></pre>
+				<!-- cspell:enable -->
+				<a href="#a-base-32-encoding-for-binary-strings" id="a-base-32-encoding-for-binary-strings" style="color: inherit; text-decoration: none;">
+					<h2>A base 32 encoding for binary strings</h2>
+				</a>
+				<p>This document describes a human-readable base 32 encoding for binary strings. It is intended to be used for e.g. product keys, which may be printed on paper and entered using a keyboard. As such, it is important that codes are easy to read, easy to type, and that errors can be detected.</p>
+				<p>The encoding described here has some similarities with the <a href="https://www.crockford.com/wrmg/base32.html">Base32 encoding proposed by Douglas Crockford</a>, which has similar goals, but differs in many of the details.</p>
+				<a href="#overview-of-the-encoding" id="overview-of-the-encoding" style="color: inherit; text-decoration: none;">
+					<h2>Overview of the encoding</h2>
+				</a>
+				<p>The encoding algorithm works as follows.</p>
+				<ol>
+					<li>A binary string is split into 20 bit groups, left-padding with 0s if necessary.</li>
+					<li>Each group is converted to four base 32 digits (using 5 bits per digit).</li>
+					<li>For each group, we calculate a check digit using a 5-bit CRC.</li>
+					<li>Each base 32 digit is encoded using the following 32 character alphabet:<!-- cspell:disable-next-line -->
+					&quot;23456789ABCDEFGHJKLMNPQRSTUVWXYZ&quot;. (Alternatively, the lowercase alphabet &quot;abcdefghijkmnpqrstuvwxyz23456789&quot; may be used.)</li>
+					<li>Groups are joined with hyphens (-).</li>
+				</ol>
+				<p>Calculation of check digits is described further below.</p>
+				<!-- cspell:disable -->
+				<p>For example, 0x123456789abcdef (hexadecimal) contains 60 bits, so it is split into three groups (0x12345, 0x6789a, 0xbcdef). Each group is encoded separately. 0x12345 in hexadecimal is 00010 01000 11010 00101 in binary, or 2 8 26 5, with a check digit of 12. Using the uppercase alphabet, 2=4, 8=A, 26=U, 5=7, and 12=E, the first group becomes 4AU7E. The complete code is 4AU7E-EY6U6-RMHHH, where E, 6 and H are the check digits.</p>
+				<!-- cspell:enable -->
+				<p>The decoding algorithm works in reverse. It should verify the check digit of each group, and inform the user which groups are invalid. The output of the decoding algorithm is the original binary string with padding.</p>
+				<a href="#choosing-an-alphabet" id="choosing-an-alphabet" style="color: inherit; text-decoration: none;">
+					<h2>Choosing an alphabet</h2>
+				</a>
+				<a href="#why-base-32" id="why-base-32" style="color: inherit; text-decoration: none;">
+					<h3>Why base 32?</h3>
+				</a>
+				<p>Bases which are powers of 2 are convenient to encode binary data, because they allow input data to be split into equally-sized groups of bits which can be encoded/decoded independently.</p>
+				<p>For textual representation of binary data, base 16 (or hexadecimal) and base 64 are the most common encodings. Base 16 has the benefit that each 8-bit byte corresponds with exactly two 4-bit hexadecimal digits, so the encoding preserves byte boundaries without the need for padding.</p>
+				<p>Overall, base 64 is more popular than base 16 because it is more compact: it can encode 3 bytes into 4 characters (33% overhead) instead of 1 into 2 (100% overhead). However, to achieve this, the base 64 alphabet must include both uppercase and lowercase letters and at least two non-alphanumeric characters.</p>
+				<p>This has two main disadvantages:</p>
+				<ul>
+					<li>Those last two characters are often problematic, which is why there are <a href="https://en.wikipedia.org/wiki/Base64#Variants_summary_table">many different variants</a> of base 64 that mostly differ in the chosen alphabet.</li>
+					<li>Using both uppercase and lowercase letters makes it harder to spell out codes. Additionally, mixed case codes are more difficult to enter on mobile phones.</li>
+				</ul>
+				<p>Base 32 is a compromise between base 16 and base 64. It allows encoding 2.5 bytes into 4 characters (60% overhead). If we add a check digit to every group of 4, as I propose, we are reduced to encoding 2.5 bytes into 5 characters (100% overhead) which is no more compact than base 16, but adds the ability to detect errors.</p>
+				<p>Most importantly, base 32 allows us to restrict our alphabet to digits and letters of one case only, which are easier for humans to write down and communicate verbally. These codes can safely be included in URLs and filenames without need for escaping and with little risk of corruption, mitigating many of the practical problems with base 64.</p>
+				<a href="#eliminating-ambiguous-characters" id="eliminating-ambiguous-characters" style="color: inherit; text-decoration: none;">
+					<h3>Eliminating ambiguous characters</h3>
+				</a>
+				<p>The main problem with encoding binary data using ASCII characters is that, depending on the font, certain characters may be confused with others. For example, uppercase i (I) may look a lot like lowercase L (l), or the digit 0 may look like the uppercase letter O.</p>
+				<p>Other potentially confusing pairs are: 0/O/o, 1/I/l, 2/Z, 5/S, 8/B, U/V/Y, O/Q.</p>
+				<p>Since we only need 32 characters, we can start with all 36 letters and digits and eliminate some of the most confusing ones.</p>
+				<p>There are two ways to deal with groups of ambiguous characters:</p>
+				<ol>
+					<li>Exclude all characters in the group (e.g., neither &#39;0&#39; or &#39;O&#39; is used).</li>
+					<li>Collapse the ambiguous characters to a single representative element (e.g., &#39;0&#39;, &#39;O&#39;, and &#39;o&#39; are all interpreted as &#39;0&#39;).</li>
+				</ol>
+				<p>The first approach is the simplest.</p>
+				<p>The second approach allows us to keep one element of each ambiguous set, which as the benefit that we can eliminate more ambiguous groups overall. However, this comes with the disadvantage that readers that are unfamiliar with the details of the encoding might waste time scrutinizing a code, trying to distinguish &#39;0&#39; from &#39;O&#39; for example, unaware that the distinction does not matter.</p>
+				<p>Crockford uses the second approach. However, considering the downside mentioned above, and since neither approach can eliminate all ambiguity, I favor the simpler first approach. I decided to eliminate the most confusing pairs: 0/O and 1/I.</p>
+				<a href="#uppercase-or-lowercase" id="uppercase-or-lowercase" style="color: inherit; text-decoration: none;">
+					<h3>Uppercase or lowercase?</h3>
+				</a>
+				<p>We only need up to 26 letters in our encoding, so to avoid confusion, we will use only letters of the same case. But which one should we pick?</p>
+				<p>Uppercase letters have the advantage that they are printed larger and thus are more easily identified. Additionally, a string of uppercase letters is more easily recognized as a code rather than a word.</p>
+				<p>However, lowercase letters have the advantage that in most fonts, they are more easily distinguished from digits. For example, 5/s and 2/z are less ambiguous than 5/S and 2/Z in most fonts.</p>
+				<p>Finally, some ambiguities only exist in lowercase or uppercase. For example, 1 can be confused with lowercase l (but not uppercase L) or uppercase I (but not lowercase i). So the choice of letter case affects which pairs are ambiguous.</p>
+				<p>I&#39;ve decided to favor uppercase characters, but provide an alternative lowercase alphabet too.</p>
+				<a href="#the-base-32-alphabet" id="the-base-32-alphabet" style="color: inherit; text-decoration: none;">
+					<h3>The base 32 alphabet</h3>
+				</a>
+				<p>Two alphabets are provided:</p>
+				<!-- cspell:disable -->
+				<ul>
+					<li>Uppercase alphabet: <code>23456789ABCDEFGHJKLMNPQRSTUVWXYZ</code> (preferred).</li>
+					<li>Lowercase alphabet: <code>abcdefghijkmnpqrstuvwxyz23456789</code> (alternative).</li>
+				</ul>
+				<!-- cspell:enable -->
+				<p>The uppercase alphabet consists of digits 2-9, followed by letters A-Z (omitting <code>O</code> and <code>I</code>).</p>
+				<p>The lowercase alphabet consists of letters a-z (omitting <code>o</code> and <code>l</code>), followed by digits 2-9.</p>
+				<p>Note that the alphabets differ in the letters <code>I</code> (included in lowercase form, but not uppercase) and <code>L</code> (included in uppercase form, but not lowercase).</p>
+				<p>Furthermore, letters were moved in front of digits in the alternative alphabet. This is intended to avoid confusion about which alphabet is used. Otherwise, most (but not all) letters would pair up, and entering a lowercase code in an
+					input field that expects an uppercase code would work for some groups but not others, which would be very confusing. By making the ordering of characters very
+				different such errors are more easily detected.</p>
+				<a href="#check-digits" id="check-digits" style="color: inherit; text-decoration: none;">
+					<h2>Check digits</h2>
+				</a>
+				<p>Since codes are primarily intended to be read and written by humans, it is important to include check digits to verify that the entered code is correct.</p>
+				<p>Crockford proposes using the integer value modulo 37 as a checksum, which requires adding 5 more characters to the alphabet for the final digit. This has many of the same disadvantages as base 64 encoding. Since the extra characters aren&#39;t part of the usual alphabet, users might not even recognize them as being part of the code.</p>
+				<p>Instead, I propose a 5-bit cyclic redundancy check, so that the check digit is another base 32 digit, which is appended to the data digits and encoded with the same alphabet.</p>
+				<p>The CRC is based on the polynomial x^5 + x^2 + 1 (also known as CRC-5-USB). This particular polynomial was chosen because, when used in a 5 character group, it detects:</p>
+				<ul>
+					<li>any individual character replacement (e.g. ABCDE -&gt; XBCDE).</li>
+					<li>any transposition of adjacent characters (e.g. ABCDE -&gt; BACDE).<!-- cspell:disable-next-line --></li>
+					<li>any substitution of one character with another (e.g. 22ABC -&gt; ZZABC).</li>
+				</ul>
+				<p>The first two kinds of errors are common when entering codes using a keyboard, while the third kind occurs when one character is mistaken for another (like 2 for Z, one of the ambiguous pairs that we didn&#39;t eliminate from the alphabet).</p>
+				<p>For reference, the Python code below calculates the CRC-5 of base 32 numbers:</p>
+				<pre><code><span class="hljs-attribute">CRC5_TAB</span> = (
+     <span class="hljs-attribute">0</span>,  <span class="hljs-number">5</span>, <span class="hljs-number">10</span>, <span class="hljs-number">15</span>, <span class="hljs-number">20</span>, <span class="hljs-number">17</span>, <span class="hljs-number">30</span>, <span class="hljs-number">27</span>, <span class="hljs-number">13</span>,  <span class="hljs-number">8</span>,  <span class="hljs-number">7</span>,  <span class="hljs-number">2</span>, <span class="hljs-number">25</span>, <span class="hljs-number">28</span>, <span class="hljs-number">19</span>, <span class="hljs-number">22</span>,
+    <span class="hljs-attribute">26</span>, <span class="hljs-number">31</span>, <span class="hljs-number">16</span>, <span class="hljs-number">21</span>, <span class="hljs-number">14</span>, <span class="hljs-number">11</span>,  <span class="hljs-number">4</span>,  <span class="hljs-number">1</span>, <span class="hljs-number">23</span>, <span class="hljs-number">18</span>, <span class="hljs-number">29</span>, <span class="hljs-number">24</span>,  <span class="hljs-number">3</span>,  <span class="hljs-number">6</span>,  <span class="hljs-number">9</span>, <span class="hljs-number">12</span>)
+
+<span class="hljs-attribute">def</span> CalculateCrc<span class="hljs-number">5</span>(digits):
+    <span class="hljs-attribute">crc</span> = <span class="hljs-number">0</span>
+    <span class="hljs-attribute">for</span> digit in digits:
+        <span class="hljs-attribute">crc</span> = CRC<span class="hljs-number">5</span>_TAB[digit ^ crc]
+    <span class="hljs-attribute">return</span> crc
+
+<span class="hljs-attribute">assert</span> CalculateCrc<span class="hljs-number">5</span>([<span class="hljs-number">2</span>, <span class="hljs-number">8</span>, <span class="hljs-number">26</span>, <span class="hljs-number">5</span>]) == <span class="hljs-number">12</span>
+<span class="hljs-attribute">assert</span> CalculateCrc<span class="hljs-number">5</span>([<span class="hljs-number">28</span>, <span class="hljs-number">29</span>, <span class="hljs-number">30</span>, <span class="hljs-number">31</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]) == <span class="hljs-number">20</span></code></pre>
+				<a href="#grouping-of-digits" id="grouping-of-digits" style="color: inherit; text-decoration: none;">
+					<h2>Grouping of digits</h2>
+				</a>
+				<p>In principle, we could encode an arbitrary byte string and add a single check digit at the end. This would give us a 96.875% probability of detecting errors. This is similar to what Crockford proposes. However, this has the downside that we can only verify the validity of the code after it is entered in its entirety, and we cannot tell the user where the error occurred. For longer codes, this would be very frustrating.</p>
+				<p>Moreover, long strings are hard to read for humans, which is why some kind of grouping is desirable. My proposal is to group the data into 20-bit words, encoding each word independently into five characters including one check digit. Groups are separated by hyphens.</p>
+				<p>This format has several advantages:</p>
+				<ul>
+					<li>Separating long codes into groups of characters greatly increases legibility.</li>
+					<li>Including a check character in each group reduces the likelihood that errors go undetected in long strings, because it is impossible for errors in separate groups to cancel each other out.</li>
+					<li>It becomes possible to tell the user which group exactly contains an error, instead of rejecting the whole code. This is much more user-friendly.</li>
+					<li>Each group can be validated as it is entered, making it easier for users to correct mistakes.</li>
+				</ul>
+				<p>It would be preferable to choose a group size that aligns to a byte boundary, but unfortunately, the least common multiple of 5 and 8 is 40, so the smallest group size would use 8 digits (excluding the check digits) to encode 5 bytes. These groups would be too long for humans to process one-at-a-time.</p>
+				<p>Grouping by five digits (4 data digits + 1 check digit) is a reasonable alternative: the groups are small enough to be easy to read as a whole, while every 2 groups encode 5 whole bytes.</p>
+				<a href="#separating-character" id="separating-character" style="color: inherit; text-decoration: none;">
+					<h3>Separating character</h3>
+				</a>
+				<p>I selected the hyphen (&#39;-&#39;, technically, the ASCII minus sign) as the separating character, because:</p>
+				<ul>
+					<li>It is safe to use without escaping in URLs and filenames.</li>
+					<li>Text viewers (email clients, web browsers, and so on) may naturally break long codes after a hyphen, which improves formatting. Unlike other punctuation marks, a hyphen at the end of the line suggests that the code continues at the next line.</li>
+				</ul>
+				<p>An input dialog that is designed to accept base 32 codes could group digits automatically without requiring that hyphens are entered explicitly. This is particularly helpful on mobile devices.</p>
+				<a href="#test-vectors" id="test-vectors" style="color: inherit; text-decoration: none;">
+					<h2>Test vectors</h2>
+				</a>
+				<p>Below are some examples of inputs and the corresponding encodings. Feel free to use these for testing purposes.</p>
+				<!-- cspell:disable -->
+				<p>Hexadecimal input: <code>fedcba9876543210</code> (64 bits) <br>Uppercase grouped: <code>222HQ-XR7UV-M3V7M-AEJJS</code> <br>Lowercase grouped: <code>aaary-7zf45-vb5fv-inss2</code> <br>Uppercase ungrouped: <code>HXR7UM3V7AEJJW</code> <br>Lowercase ungrouped: <code>r7zf4vb5finss6</code></p>
+				<p>Hexadecimal input: <code>f8956c40a3a2d978dbc3</code> (80 bits) <br>Uppercase grouped: <code>Z4CQN-SJ759-NDERZ-KQY5V</code> <br>Lowercase grouped: <code>9ckyw-2sfdh-wmnz9-ty8d5</code> <br>Uppercase ungrouped: <code>Z4CQSJ75NDERKQY54</code> <br>Lowercase ungrouped: <code>9cky2sfdwmnzty8dc</code></p>
+				<p>Hexadecimal input: <code>cbd3e8a1494</code> (44 bits) <br>Uppercase grouped: <code>222ET-RNZAY-N76N9</code> <br>Lowercase grouped: <code>aaan3-zw9i8-wfewh</code> <br>Uppercase ungrouped: <code>ERNZAN76NM</code> <br>Lowercase ungrouped: <code>nzw9iwfewv</code></p>
+				<p>Hexadecimal input: <code>867ffd93c9dff77a08f2ea98b10682cb53d590cf64ae55a823</code> (200
+					bits) <br>Uppercase grouped:
+					<code>JTZZK-V6YBQ-VZVR3-N49LS-XCED2-43N4Y-TFBXT-D68HR-ELR7M-DC35X</code> <br>Lowercase grouped:
+				<code>s399t-5e8jy-595zb-wchu2-7knma-cbwc8-3pj73-megrz-nuzfv-mkbd7</code> <br>Uppercase ungrouped: <code>JTZZV6YBVZVRN49LXCED43N4TFBXD68HELR7DC35M</code> <br>Lowercase ungrouped: <code>s3995e8j595zwchu7knmcbwc3pj7megrnuzfmkbdv</code></p>
+				<!-- cspell:enable -->
+				<a href="#ideas-not-pursued" id="ideas-not-pursued" style="color: inherit; text-decoration: none;">
+					<h2>Ideas not pursued</h2>
+				</a>
+				<a href="#wider-checksums" id="wider-checksums" style="color: inherit; text-decoration: none;">
+					<h3>Wider checksums</h3>
+				</a>
+				<p>From an information theoretic point of view, having a check digit per group is not optimal: for long strings, the probability that an error is detected is maximized if all check digits are affected by all input bits. For example, if we have a 100-bit input, it would be better to append a single 25-bit CRC over the entire input than have a 5-bit CRC for each 20-bit group. However, this has the disadvantage that we can only reject the input in its entirety, without pointing out the user&#39;s error.</p>
+				<a href="#chainedinverted-crcs" id="chainedinverted-crcs" style="color: inherit; text-decoration: none;">
+					<h3>Chained/inverted CRCs</h3>
+				</a>
+				<p>It&#39;s also possible to chain the check digits between groups (so that the second group&#39;s check digit checks all preceding 8 data digits, instead of only the preceding 4). This would allow us to detect errors when one or more groups are dropped from the front of the code. However, this is unlikely to be a problem in practice (if codes are truncated, groups are more likely dropped from the
+				end) and increases implementation complexity.</p>
+				<p>When calculating CRCs, it is common to invert the bits of the CRC before (and sometimes also after) calculation. This is done to detect differences in the number of leading zeroes in the input, which would otherwise generate the same check digit. However, when using fixed-size groups, this is not necessary.</p>
+				<a href="#eliminating-offensive-words" id="eliminating-offensive-words" style="color: inherit; text-decoration: none;">
+					<h3>Eliminating offensive words</h3>
+				</a>
+				<p>Using letters in the encoding alphabet has the risk that some combinations of letters might form offensive words. Crockford eliminates the letter U from his alphabet for this reason.</p>
+				<!-- cspell:disable -->
+				<p>However, this is far from a satisfactory solution. Even in English, there are many offensive words using the remaining letters. Even if we went so far as to remove all vowels, offensive abbreviations (like &quot;KKK&quot;) or misspellings (&quot;FVCK&quot;) would remain. And that&#39;s not even considering other languages than English, which may have their own taboo words.</p>
+				<!-- cspell:enable -->
+				<p>On the other hand, offensiveness might not be much of a problem in practice. People can easily recognize that codes are not regular English text, and although they might notice an offensive substring if it appears by random chance, they will probably realize this is purely a coincidence, and are unlikely to feel seriously offended.</p>
+				<p>So since guaranteed inoffensiveness is impossible, and potential offensiveness is not likely to be a problem, it&#39;s best to ignore the problem entirely instead of inventing convoluted solutions.</p>
+				<p>If this is not acceptable in a particular context, it may be possible to filter out offensive codes after the fact. For example, if a company generates random product keys, they can check the generated codes against a blacklist and discard keys that are deemed offensive. This approach requires that the input bytes can be changed to suit the extra requirements on the encoded output; this might not always be possible, for example, when encoding cryptographic hash codes.</p>
+				<a href="#padding-of-input--detecting-truncated-output" id="padding-of-input--detecting-truncated-output" style="color: inherit; text-decoration: none;">
+					<h3>Padding of input / detecting truncated output</h3>
+				</a>
+				<p>Encodings like base 64 typically use padding characters to specify how many input bytes are encoded in the final block. This is necessary because base-64 (like base 32, but unlike base 16) does not naturally align to byte boundaries.</p>
+				<p>There are many ways to address this problem, with different advantages and disadvantages:</p>
+				<ul>
+					<li>Should only the number of bytes in the final block be encoded, or the total number of bytes? (The latter has the advantage that truncated codes can be detected.)</li>
+					<li>Should the number of bytes or the number of bits be encoded? (The latter has the advantage that bit strings can be encoded.)</li>
+					<li>Should padding use different characters from the regular alphabet (as with base 64) or not?</li>
+					<li>Should the last block be allowed to use fewer than 5 characters instead?</li>
+				</ul>
+				<p>In the end I decided to not define any padding, because different schemes are suitable for different use cases. For example, if we use the base 32 encoding to generate 120 bit product keys, the output always consists of 6 groups, and no padding is needed. Similarly, if leading zeros do not change the interpretation of the input (for example, when encoding large integers) encoding the number of padding bytes is unnecessary.</p>
+				<p>For use cases where the input length does matter, it is easy to perpend a fixed-size prefix that specifies the length of the original input. This would also allow truncated codes to be detected.</p>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#fromhexstring" class="tsd-kind-icon">from<wbr>Hex<wbr>String</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#tohexstring" class="tsd-kind-icon">to<wbr>Hex<wbr>String</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
