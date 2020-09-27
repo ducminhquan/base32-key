@@ -1,5 +1,9 @@
 # base32-key - A base 32 encoding for binary strings
 
+[![GitHub license](https://img.shields.io/github/license/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/releases/)
+[![GitHub tag](https://img.shields.io/github/tag/ducminhquan/base32-key.svg)](https://GitHub.com/ducminhquan/base32-key/tags/)
+
 [![NPM](https://nodei.co/npm/base32-key.png?downloads=true&stars=true)](https://www.npmjs.com/package/base32-key)
 
 ## Usage
