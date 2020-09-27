@@ -5,9 +5,9 @@
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "https://github.com/YOUR_GITHUB_USER_NAME/base32-key",
+  "repository": "https://github.com/ducminhquan/base32-key",
   "license": "MIT",
-  "keywords": [],
+  "keywords": ["base32", "serial-key", "cd key", "Crockford"],
   "scripts": {
     "build": "run-p build:*",
     "build:main": "tsc -p tsconfig.json",
