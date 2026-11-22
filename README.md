@@ -42,6 +42,10 @@ console.log(toHexString('222ET-3ZZGN'));
 
 <!-- cspell:enable -->
 
+## Releasing
+
+Pushing a version tag publishes the package to npm automatically. See [RELEASING.md](.github/RELEASING.md).
+
 ## A base 32 encoding for binary strings
 
 This document describes a human-readable base 32 encoding for binary strings. It is intended to be used for e.g. product keys, which may be printed on paper and entered using a keyboard. As such, it is important that codes are easy to read, easy to type, and that errors can be detected.
