@@ -100,7 +100,7 @@ test('generateKey >> rejects bad options', (t) => {
   );
 });
 
-test('generateKey >> default random source', (t) => {
+test.serial('generateKey >> default random source', (t) => {
   const crypto = (globalThis as { crypto?: unknown }).crypto;
   if (crypto) {
     const keys = new Set([generateKey(), generateKey(), generateKey()]);
@@ -113,18 +113,12 @@ test('generateKey >> default random source', (t) => {
   }
 });
 
-test('generateKey >> reports a missing random source', (t) => {
+const withGlobalCrypto = (value: unknown, run: () => void) => {
   const global = globalThis as { crypto?: unknown };
   const descriptor = Object.getOwnPropertyDescriptor(global, 'crypto');
-  Object.defineProperty(global, 'crypto', {
-    value: undefined,
-    configurable: true,
-  });
+  Object.defineProperty(global, 'crypto', { value, configurable: true });
   try {
-    t.is(
-      t.throws<Base32KeyError>(() => generateKey()).code,
-      'NO_RANDOM_SOURCE'
-    );
+    run();
   } finally {
     if (descriptor) {
       Object.defineProperty(global, 'crypto', descriptor);
@@ -132,6 +126,35 @@ test('generateKey >> reports a missing random source', (t) => {
       delete global.crypto;
     }
   }
+};
+
+test.serial('generateKey >> reports a missing random source', (t) => {
+  withGlobalCrypto(undefined, () => {
+    t.is(
+      t.throws<Base32KeyError>(() => generateKey()).code,
+      'NO_RANDOM_SOURCE'
+    );
+  });
+  withGlobalCrypto({}, () => {
+    t.is(
+      t.throws<Base32KeyError>(() => generateKey()).code,
+      'NO_RANDOM_SOURCE'
+    );
+  });
+});
+
+test.serial('generateKey >> uses globalThis.crypto by default', (t) => {
+  const calls: number[] = [];
+  const fake = {
+    getRandomValues(array: Uint8Array) {
+      calls.push(array.length);
+      return array.fill(255);
+    },
+  };
+  withGlobalCrypto(fake, () => {
+    t.is(generateKey({ checked: false, groups: 2 }), 'ZZZZ-ZZZZ');
+  });
+  t.deepEqual(calls, [8]);
 });
 
 test('fromBigInt / toBigInt', (t) => {
