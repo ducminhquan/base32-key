@@ -1,6 +1,6 @@
 # base32-key - A base 32 encoding for binary strings
 
-[![Actions Status](https://github.com/ducminhquan/base32-key/workflows/Node.js%20Package/badge.svg)](https://github.com/ducminhquan/base32-key/actions)
+[![CI](https://github.com/ducminhquan/base32-key/actions/workflows/ci.yml/badge.svg)](https://github.com/ducminhquan/base32-key/actions/workflows/ci.yml)
 [![GitHub license](https://img.shields.io/github/license/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/releases/)
 [![GitHub tag](https://img.shields.io/github/tag/ducminhquan/base32-key.svg)](https://GitHub.com/ducminhquan/base32-key/tags/)
@@ -41,6 +41,10 @@ console.log(toHexString('222ET-3ZZGN'));
 ```
 
 <!-- cspell:enable -->
+
+## Releasing
+
+Pushing a version tag publishes the package to npm automatically. See [RELEASING.md](.github/RELEASING.md).
 
 ## A base 32 encoding for binary strings
 

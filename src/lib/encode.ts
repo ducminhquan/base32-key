@@ -1,11 +1,24 @@
 import {
+  BASE_16_DIGITS,
   BASE_32_DIGITS,
   BASE_32_DIGITS_LOWERCASE,
+  baseDecode,
+  baseEncode,
   calculateCrc5,
 } from './utils';
 
-function baseEncode(numArray: readonly number[], alphabet: string) {
-  return numArray.map(alphabet.charAt.bind(alphabet)).join('');
+function parseHexString(base16String: string) {
+  if (typeof base16String !== 'string') {
+    throw new TypeError('Invalid hex string: expected a string');
+  }
+  const hex = /^0x/i.test(base16String)
+    ? base16String.substring(2)
+    : base16String;
+  const base16Numbers = baseDecode(hex.toLowerCase(), BASE_16_DIGITS);
+  if (base16Numbers == null || base16Numbers.length === 0) {
+    throw new Error(`Invalid hex string: "${base16String}"`);
+  }
+  return base16Numbers;
 }
 
 function encodeBase32(
@@ -81,12 +94,12 @@ function numberToBase32(input: readonly number[]) {
  * // => '222ET-3ZZGN'
  * ```
  *
- * @param base16String - Input HexString.
+ * @param base16String - Input HexString (an optional `0x` prefix is allowed).
  * @param grouped - Split the result into groups.
  * @param checked - Include the checksum into Base32-Key.
  * @param upperCase - Use uppercase or lowercase Base32-Key.
  * @returns Base32-Key string.
- * @anotherNote Some other value.
+ * @throws Error if `base16String` is empty or contains non-hex characters.
  */
 
 // cspell: enable
@@ -96,9 +109,7 @@ export const fromHexString = (
   checked = true,
   upperCase = true
 ): string => {
-  const base16Numbers = [...base16String].map((c) => {
-    return parseInt(c, 16);
-  });
+  const base16Numbers = parseHexString(base16String);
   const base32Numbers = numberToBase32(base16Numbers);
   const result = encodeBase32(base32Numbers, grouped, checked, upperCase);
   return result;
