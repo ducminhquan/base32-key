@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.0](https://github.com/ducminhquan/base32-key/compare/v2.1.0...v3.0.0) (2026-11-22)
+
+### ⚠ BREAKING CHANGES
+
+* Node.js 20 or later is required. The build output moved
+  from build/ to dist/ and the package has an exports map, so deep imports
+  such as base32-key/build/main/... no longer resolve. The public API is
+  unchanged.
+
+### Features
+
+* typo suggestions, key input helpers, Standard Schema, prefixes and a CDN build ([#13](https://github.com/ducminhquan/base32-key/issues/13)) ([7b56487](https://github.com/ducminhquan/base32-key/commit/7b564877a141dbd8b8dfee456eb87fbc14755ad4))
+
 ## [2.1.0](https://github.com/ducminhquan/base32-key/compare/v2.0.0...v2.1.0) (2026-11-22)
 
 ### Features
