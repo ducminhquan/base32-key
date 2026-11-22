@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [2.1.0](https://github.com/ducminhquan/base32-key/compare/v2.0.0...v2.1.0) (2026-11-22)
+
+### Features
+
+* required group count, auto alphabet, CLI JSON/file modes, shared test vectors ([#10](https://github.com/ducminhquan/base32-key/issues/10)) ([56c01b9](https://github.com/ducminhquan/base32-key/commit/56c01b93bb1bcf8362ea3bcbd9a7de0014e62882))
+
 ## [2.0.0](https://github.com/ducminhquan/base32-key/compare/v1.1.0...v2.0.0) (2026-11-22)
 
 ### ⚠ BREAKING CHANGES
