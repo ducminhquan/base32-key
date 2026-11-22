@@ -44,7 +44,7 @@ console.log(toHexString('222ET-3ZZGN'));
 
 ## Releasing
 
-Pushing a version tag publishes the package to npm automatically. See [RELEASING.md](.github/RELEASING.md).
+Releases run from GitHub Actions and are staged on npm for approval. See [RELEASING.md](.github/RELEASING.md).
 
 ## A base 32 encoding for binary strings
 
