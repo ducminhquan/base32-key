@@ -1,3 +1,5 @@
+import { Base32KeyError } from './errors';
+import { EncodeOptions, resolveOptions } from './options';
 import {
   BASE_16_DIGITS,
   BASE_32_DIGITS,
@@ -16,16 +18,20 @@ function parseHexString(base16String: string) {
     : base16String;
   const base16Numbers = baseDecode(hex.toLowerCase(), BASE_16_DIGITS);
   if (base16Numbers == null || base16Numbers.length === 0) {
-    throw new Error(`Invalid hex string: "${base16String}"`);
+    throw new Base32KeyError(
+      'INVALID_HEX',
+      `Invalid hex string: "${base16String}"`
+    );
   }
   return base16Numbers;
 }
 
-function encodeBase32(
+export function encodeBase32(
   base32Numbers: number[],
   grouped: boolean,
   checked: boolean,
-  upperCase: boolean
+  upperCase: boolean,
+  keepLeadingZeros = false
 ) {
   const digits = upperCase ? BASE_32_DIGITS : BASE_32_DIGITS_LOWERCASE;
   if (grouped) {
@@ -44,7 +50,11 @@ function encodeBase32(
       base32Numbers.push(calculateCrc5(base32Numbers));
     }
     let i = 0;
-    while (i + 1 < base32Numbers.length && base32Numbers[i] == 0) {
+    while (
+      !keepLeadingZeros &&
+      i + 1 < base32Numbers.length &&
+      base32Numbers[i] == 0
+    ) {
       ++i;
     }
     return baseEncode(base32Numbers.slice(i), digits);
@@ -78,39 +88,47 @@ function numberToBase32(input: readonly number[]) {
 
 // cspell: disable
 /**
- * Encode Base32 key from HexString
+ * Encode a hex string as a Base32 key.
  *
- * ### Example (es module)
+ * ### Example
  * ```js
  * import { fromHexString } from 'base32-key'
- * console.log(fromHexString('c0ffee'))
+ * fromHexString('c0ffee')
  * // => '222ET-3ZZGN'
+ * fromHexString('c0ffee', { grouped: false, case: 'lower' })
+ * // => 'nb99qj'
  * ```
  *
- * ### Example (commonjs)
- * ```js
- * var fromHexString = require('base32-key').fromHexString;
- * console.log(fromHexString('c0ffee'))
- * // => '222ET-3ZZGN'
- * ```
- *
- * @param base16String - Input HexString (an optional `0x` prefix is allowed).
- * @param grouped - Split the result into groups.
- * @param checked - Include the checksum into Base32-Key.
- * @param upperCase - Use uppercase or lowercase Base32-Key.
- * @returns Base32-Key string.
- * @throws Error if `base16String` is empty or contains non-hex characters.
+ * @param base16String - Input hex string (an optional `0x` prefix is allowed).
+ * @param options - Encoding options, or the legacy `grouped` boolean.
+ * @returns Base32 key.
+ * @throws {@link Base32KeyError} with code `INVALID_HEX` if `base16String` is
+ * empty or contains non-hex characters.
  */
-
 // cspell: enable
-export const fromHexString = (
+export function fromHexString(
   base16String: string,
-  grouped = true,
-  checked = true,
-  upperCase = true
-): string => {
+  options?: EncodeOptions
+): string;
+/**
+ * @deprecated Pass an options object instead of positional booleans.
+ * @param base16String - Input hex string.
+ * @param grouped - Split the key into groups.
+ * @param checked - Add check digits.
+ * @param upperCase - Use the uppercase alphabet.
+ */
+export function fromHexString(
+  base16String: string,
+  grouped?: boolean,
+  checked?: boolean,
+  upperCase?: boolean
+): string;
+export function fromHexString(
+  base16String: string,
+  ...args: unknown[]
+): string {
+  const { grouped, checked, upperCase } = resolveOptions(args);
   const base16Numbers = parseHexString(base16String);
   const base32Numbers = numberToBase32(base16Numbers);
-  const result = encodeBase32(base32Numbers, grouped, checked, upperCase);
-  return result;
-};
+  return encodeBase32(base32Numbers, grouped, checked, upperCase);
+}
