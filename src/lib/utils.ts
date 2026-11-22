@@ -21,14 +21,31 @@ function baseEncode(numArray: readonly number[], alphabet: string) {
   return numArray.map(alphabet.charAt.bind(alphabet)).join('');
 }
 
+const LOOKUP_TABLES = new Map<string, Int8Array>();
+
+/** Maps a character code below 128 to its digit, or -1. */
+function lookupTable(alphabet: string) {
+  let table = LOOKUP_TABLES.get(alphabet);
+  if (!table) {
+    table = new Int8Array(128).fill(-1);
+    for (let i = 0; i < alphabet.length; ++i) {
+      table[alphabet.charCodeAt(i)] = i;
+    }
+    LOOKUP_TABLES.set(alphabet, table);
+  }
+  return table;
+}
+
 function baseDecode(numString: string, alphabet: string) {
-  const numArray: number[] = [];
+  const table = lookupTable(alphabet);
+  const numArray: number[] = new Array(numString.length);
   for (let i = 0; i < numString.length; ++i) {
-    const digit = alphabet.indexOf(numString.charAt(i));
+    const code = numString.charCodeAt(i);
+    const digit = code < 128 ? table[code] : -1;
     if (digit < 0) {
       return null;
     }
-    numArray.push(digit);
+    numArray[i] = digit;
   }
   return numArray;
 }

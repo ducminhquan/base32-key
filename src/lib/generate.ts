@@ -1,4 +1,4 @@
-import { encodeBase32 } from './encode';
+import { addPrefix, encodeBase32 } from './encode';
 import { Base32KeyError } from './errors';
 import { EncodeOptions, resolveOptions } from './options';
 
@@ -69,7 +69,7 @@ export function generateKey(options: GenerateOptions = {}): string {
       `maxAttempts must be a positive integer, got ${maxAttempts}`
     );
   }
-  const { grouped, checked, upperCase } = resolveOptions([options]);
+  const { grouped, checked, upperCase, prefix } = resolveOptions([options]);
   const digitCount = groups * 4;
   for (let attempt = 0; attempt < maxAttempts; ++attempt) {
     const bytes = random(digitCount);
@@ -78,7 +78,10 @@ export function generateKey(options: GenerateOptions = {}): string {
     }
     // 256 is a multiple of 32, so masking keeps the digits uniform.
     const digits = Array.from(bytes.slice(0, digitCount), (b) => b & 31);
-    const key = encodeBase32(digits, grouped, checked, upperCase, true);
+    const key = addPrefix(
+      encodeBase32(digits, grouped, checked, upperCase, true),
+      prefix
+    );
     if (!filter || filter(key)) {
       return key;
     }

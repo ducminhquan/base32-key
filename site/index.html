@@ -152,6 +152,34 @@
         font-size: 0.9rem;
         margin-top: 0.25rem;
       }
+      button.link {
+        padding: 0;
+        background: none;
+        color: var(--accent);
+        font: inherit;
+        font-family: ui-monospace, monospace;
+        text-decoration: underline;
+      }
+      .note {
+        margin: 0 0 0.75rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      base32-key-input {
+        display: block;
+      }
+      base32-key-input::part(input) {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 1.1rem;
+      }
+      base32-key-input::part(hint) {
+        color: var(--bad);
+        margin-top: 0.25rem;
+      }
       ul.keys {
         list-style: none;
         padding: 0;
@@ -196,7 +224,8 @@
       <section>
         <h2>Check a key</h2>
         <label for="key"
-          >Type or paste a key. Spaces and case are fixed for you.</label
+          >Type or paste a key. It is formatted as you type, and typos get a
+          suggested fix.</label
         >
         <input
           id="key"
@@ -206,6 +235,28 @@
         />
         <output id="key-groups"></output>
         <div class="status" id="key-status" role="status"></div>
+      </section>
+
+      <section>
+        <h2>Form field</h2>
+        <p class="note">
+          The <code>&lt;base32-key-input&gt;</code> element from
+          <code>base32-key/element</code>, set to 4 groups with the prefix LC.
+          Try <code>lc 222te 3zzgn 22222 22222</code>.
+        </p>
+        <form id="voucher-form">
+          <base32-key-input
+            name="voucher"
+            groups="4"
+            prefix="LC"
+            required
+            placeholder="LC-XXXXX-XXXXX-XXXXX-XXXXX"
+          ></base32-key-input>
+          <div class="row">
+            <button type="submit">Redeem</button>
+            <span class="status" id="form-status" role="status"></span>
+          </div>
+        </form>
       </section>
 
       <section>
@@ -235,12 +286,14 @@
 
     <script type="module">
       import {
-        formatInput,
+        attachKeyInput,
+        defineKeyInput,
         fromHexString,
         generateKey,
         toHexString,
-        validate,
-      } from './base32-key.js';
+      } from './base32-key.min.js';
+
+      defineKeyInput();
 
       const $ = (id) => document.getElementById(id);
       const options = () => ({
@@ -255,37 +308,54 @@
           CHECKSUM_MISMATCH: 'has a check digit that does not match',
         })[code] ?? code;
 
-      function checkKey() {
+      let detach;
+      function showKey(state) {
         const opts = options();
-        const raw = $('key').value;
-        const formatted = formatInput(raw, opts);
-        const groups = opts.grouped ? formatted.split('-') : [formatted];
-        const result = validate(raw, opts);
+        const groups = opts.grouped ? state.value.split('-') : [state.value];
         const out = $('key-groups');
         out.replaceChildren();
         groups.forEach((group, i) => {
           if (i > 0) out.append('-');
           const span = document.createElement('span');
-          span.className = result.invalidGroups.includes(i)
+          span.className = state.errorGroups.includes(i)
             ? 'group bad'
             : 'group';
           span.textContent = group;
           out.append(span);
         });
         const status = $('key-status');
-        if (!formatted) {
+        status.replaceChildren();
+        if (!state.value) {
           status.className = 'status';
-          status.textContent = '';
-        } else if (result.valid) {
+        } else if (state.valid) {
           status.className = 'status ok';
-          status.textContent = `Valid. Hex value: ${toHexString(formatted, opts)}`;
-        } else {
-          const which = result.invalidGroups.map((i) => i + 1).join(', ');
+          status.textContent = `Valid. Hex value: ${toHexString(state.value, opts)}`;
+        } else if (state.suggestions.length > 0) {
           status.className = 'status bad';
-          const noun = result.invalidGroups.length === 1 ? 'Group' : 'Groups';
-          const verb = result.invalidGroups.length === 1 ? 'has' : 'have';
-          status.textContent = `${noun} ${which} ${describe(result.code).replace(/^has/, verb)}.`;
+          const fix = document.createElement('button');
+          fix.type = 'button';
+          fix.className = 'link';
+          fix.textContent = state.suggestions[0];
+          fix.addEventListener('click', () => {
+            $('key').value = state.suggestions[0];
+            $('key').dispatchEvent(new Event('input'));
+          });
+          status.append('Typo? Did you mean ', fix, '?');
+        } else if (state.errorGroups.length > 0) {
+          const which = state.errorGroups.map((i) => i + 1).join(', ');
+          status.className = 'status bad';
+          const noun = state.errorGroups.length === 1 ? 'Group' : 'Groups';
+          const verb = state.errorGroups.length === 1 ? 'has' : 'have';
+          status.textContent = `${noun} ${which} ${describe(state.validation.code).replace(/^has/, verb)}.`;
+        } else {
+          status.className = 'status';
+          status.textContent = 'Keep typing…';
         }
+      }
+
+      function checkKey() {
+        detach?.();
+        detach = attachKeyInput($('key'), { ...options(), onChange: showKey });
       }
 
       function encodeHex() {
@@ -317,7 +387,12 @@
         checkKey();
         encodeHex();
       };
-      $('key').addEventListener('input', checkKey);
+      $('voucher-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        $('form-status').className = 'status ok';
+        $('form-status').textContent = `Submitted ${data.get('voucher')}`;
+      });
       $('hex').addEventListener('input', encodeHex);
       $('generate').addEventListener('click', generate);
       for (const id of ['lower', 'grouped', 'checked']) {

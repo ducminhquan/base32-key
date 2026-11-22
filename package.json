@@ -17,8 +17,13 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./package.json": "./package.json",
-    "./test-vectors.json": "./test-vectors.json"
+    "./element": {
+      "types": "./dist/element.d.ts",
+      "default": "./dist/element.js"
+    },
+    "./browser": "./dist/base32-key.min.js",
+    "./test-vectors.json": "./test-vectors.json",
+    "./package.json": "./package.json"
   },
   "bin": {
     "base32-key": "./dist/cli.js"
@@ -59,16 +64,19 @@
     "spell": "cspell --no-progress \"{README.md,.github/*.md,src/**/*.ts}\"",
     "test": "npm run typecheck && npm run lint && npm run format:check && npm run spell && npm run test:unit && npm run build && npm run test:package",
     "test:unit": "vitest run --coverage",
-    "test:package": "attw --pack . --profile node16 && node scripts/smoke.mjs",
+    "test:package": "attw --pack . --profile node16 --exclude-entrypoints ./element ./browser ./test-vectors.json && attw --pack . --profile esm-only --entrypoints ./element && size-limit && node scripts/smoke.mjs",
     "watch": "vitest",
     "doc": "typedoc",
     "site": "npm run build && npm run doc && node scripts/site.mjs",
     "bump": "commit-and-tag-version --skip.tag",
-    "release": "commit-and-tag-version && git push --follow-tags origin master"
+    "release": "commit-and-tag-version && git push --follow-tags origin master",
+    "bench": "npm run build && node scripts/bench.mjs",
+    "test:browser": "npm run build && node scripts/browser-check.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
+    "@size-limit/file": "^14.3.0",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^5.1.1",
     "commit-and-tag-version": "^13.3.0",
@@ -76,7 +84,11 @@
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "fast-check": "^4.11.0",
+    "happy-dom": "^21.0.4",
+    "playwright-core": "^1.63.0",
     "prettier": "^3.10.1",
+    "size-limit": "^14.3.0",
+    "tinybench": "^6.2.4",
     "tsup": "^9.0.0",
     "typedoc": "^0.28.20",
     "typescript": "~6.0.3",
@@ -86,5 +98,19 @@
   "prettier": {
     "singleQuote": true,
     "trailingComma": "es5"
-  }
+  },
+  "unpkg": "./dist/base32-key.min.js",
+  "jsdelivr": "./dist/base32-key.min.js",
+  "size-limit": [
+    {
+      "name": "browser build (minified)",
+      "path": "dist/base32-key.min.js",
+      "limit": "7 kB"
+    },
+    {
+      "name": "core library (ESM)",
+      "path": "dist/index.js",
+      "limit": "8 kB"
+    }
+  ]
 }

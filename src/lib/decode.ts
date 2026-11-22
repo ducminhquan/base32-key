@@ -1,3 +1,4 @@
+import { addPrefix } from './encode';
 import { Base32KeyError, Base32KeyErrorCode } from './errors';
 import {
   DecodeOptions,
@@ -109,6 +110,27 @@ export interface ValidationResult {
   readonly code?: Base32KeyErrorCode;
 }
 
+/**
+ * Removes the `prefix` option from the front of a key. Returns `undefined`
+ * when the key does not start with it.
+ */
+function stripPrefix(keyString: string, options: ResolvedOptions) {
+  const { prefix } = options;
+  if (!prefix) {
+    return keyString;
+  }
+  if (!options.normalize) {
+    return keyString.startsWith(`${prefix}-`)
+      ? keyString.substring(prefix.length + 1)
+      : undefined;
+  }
+  const cleaned = keyString.replace(/^[\s-]+/, '');
+  return cleaned.substring(0, prefix.length).toUpperCase() ===
+    prefix.toUpperCase()
+    ? cleaned.substring(prefix.length)
+    : undefined;
+}
+
 interface Analysis {
   readonly hex: string;
   readonly invalidGroups: readonly number[];
@@ -117,7 +139,11 @@ interface Analysis {
   readonly groupCount?: { readonly expected: number; readonly actual: number };
 }
 
-function analyzeWith(keyString: string, options: ResolvedOptions): Analysis {
+function analyzeWith(input: string, options: ResolvedOptions): Analysis {
+  const keyString = stripPrefix(input, options);
+  if (keyString === undefined) {
+    return { hex: '', invalidGroups: [], code: 'INVALID_PREFIX' };
+  }
   const groups = splitKey(keyString, options);
   const invalid = new Set<number>();
   let code: Base32KeyErrorCode | undefined;
@@ -173,6 +199,12 @@ export function decodeToPaddedHex(
     throw new TypeError('Invalid: expected a string');
   }
   const { hex, invalidGroups, code, groupCount } = analyze(keyString, options);
+  if (code === 'INVALID_PREFIX') {
+    throw new Base32KeyError(
+      code,
+      `Invalid key: expected the prefix "${options.prefix}"`
+    );
+  }
   if (groupCount) {
     throw new Base32KeyError(
       'INVALID_LENGTH',
@@ -299,8 +331,19 @@ export function formatInput(raw: string, options: FormatOptions = {}): string {
     throw new TypeError('Invalid: expected a string');
   }
   const resolved = resolveOptions([options], true, true);
-  const groups = splitKey(raw, resolved);
-  return groups
+  const { prefix } = resolved;
+  let rest = raw;
+  if (prefix) {
+    const cleaned = raw.replace(/[\s-]+/g, '').toUpperCase();
+    if (prefix.toUpperCase().startsWith(cleaned)) {
+      // Still typing the prefix.
+      return cleaned;
+    }
+    rest = stripPrefix(raw, resolved) ?? raw;
+  }
+  const groups = splitKey(rest, resolved);
+  const key = groups
     .slice(0, resolved.groups ?? groups.length)
     .join(resolved.grouped ? '-' : '');
+  return addPrefix(key, prefix);
 }
