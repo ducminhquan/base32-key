@@ -40,6 +40,94 @@ console.log(toHexString('222ET-3ZZGN'));
 // => 'c0ffee'
 ```
 
+### Options
+
+Every function takes an optional options object. The old positional booleans
+(`fromHexString(hex, grouped, checked, upperCase)`) still work but are deprecated.
+
+| Option      | Default   | Meaning                                                                      |
+| ----------- | --------- | ---------------------------------------------------------------------------- |
+| `grouped`   | `true`    | Split the key into hyphen-separated groups of 4 data digits.                 |
+| `checked`   | `true`    | Add a CRC-5 check digit (one per group when grouped).                        |
+| `case`      | `'upper'` | `'upper'` or `'lower'` alphabet.                                             |
+| `normalize` | see below | Decoding only: ignore whitespace, letter case and where the hyphens are put. |
+
+`normalize` defaults to `false` for `toHexString` and `toBigInt` and to `true` for `validate`.
+
+```js
+fromHexString('c0ffee', { grouped: false, case: 'lower' });
+// => 'nb99qj'
+toHexString(' 222et 3zzgn ', { normalize: true });
+// => 'c0ffee'
+```
+
+### Checking a key while the user types
+
+```js
+import { formatInput, validate } from 'base32-key';
+
+formatInput('222et3zz');
+// => '222ET-3ZZ'  (put this back in the input field)
+
+validate('222ET-3ZZGX');
+// => { valid: false, invalidGroups: [1], code: 'CHECKSUM_MISMATCH' }
+```
+
+`invalidGroups` holds 0-based group indexes, so you can highlight exactly the group that was mistyped.
+
+### Errors
+
+Invalid input throws a `Base32KeyError` with a `code` and the `invalidGroups`:
+
+```js
+import { Base32KeyError, toHexString } from 'base32-key';
+
+try {
+  toHexString('222EX-3ZZGN');
+} catch (error) {
+  if (error instanceof Base32KeyError) {
+    error.code; // 'CHECKSUM_MISMATCH'
+    error.invalidGroups; // [0]
+  }
+}
+```
+
+| Code                | When                                                          |
+| ------------------- | ------------------------------------------------------------- |
+| `INVALID_HEX`       | The hex input is empty or has non-hex characters.             |
+| `INVALID_CHARACTER` | A group has a character outside the alphabet (e.g. `0`, `O`). |
+| `INVALID_LENGTH`    | The key or a group has the wrong length.                      |
+| `CHECKSUM_MISMATCH` | A check digit does not match its group.                       |
+| `GENERATION_FAILED` | `generateKey` found no key accepted by `filter`.              |
+| `NO_RANDOM_SOURCE`  | No `crypto.getRandomValues`; pass the `random` option.        |
+
+A non-string argument throws a `TypeError`.
+
+### Generating keys
+
+```js
+import { generateKey } from 'base32-key';
+
+generateKey();
+// => e.g. 'K7RQX-2HMTD-9WCJA-PNE4F'  (4 groups, 80 random bits)
+
+generateKey({ groups: 3, filter: (key) => !blocklist.has(key) });
+```
+
+`generateKey` uses `crypto.getRandomValues` (browsers, Node.js 19+). On older
+Node.js pass `random: (n) => require('crypto').randomBytes(n)`.
+
+### Numbers
+
+```js
+import { fromBigInt, toBigInt } from 'base32-key';
+
+fromBigInt(12648430n);
+// => '222ET-3ZZGN'
+toBigInt('222ET-3ZZGN');
+// => 12648430n
+```
+
 <!-- cspell:enable -->
 
 ## Releasing
