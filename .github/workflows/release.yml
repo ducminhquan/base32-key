@@ -1,11 +1,16 @@
-# Publishes the package to npm whenever a version tag (v1.2.3) is pushed.
+# Releases the package: tags the version, runs the tests, stages it on npm
+# (npm stage publish) and creates a GitHub release.
 #
-# Release flow:
-#   npm run release      # bump version, update CHANGELOG, commit, tag, push
+# Two ways to start a release:
+#   1. Actions -> Release -> Run workflow on master. The version is read from
+#      package.json; the tag vX.Y.Z is created on master if it does not exist.
+#   2. Push a version tag yourself, e.g. with `npm run release`.
 #
 # Authentication uses npm trusted publishing (OIDC): no npm token or secret.
 # The trusted publisher must be configured on npmjs.com for this repository,
-# workflow file "release.yml" and environment "npm". See .github/RELEASING.md.
+# workflow file "release.yml" and environment "npm". A staged version goes
+# live only after a maintainer approves it on npmjs.com with 2FA.
+# See .github/RELEASING.md.
 
 name: Release
 
@@ -15,18 +20,79 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to publish, e.g. v1.0.9'
-        required: true
+        description: 'Leave empty to release the package.json version of the selected branch. Or give an existing tag (e.g. v1.0.9) to stage it again.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the release tag
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve or create the release tag
+        id: tag
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "push" ]; then
+            TAG="$REF_NAME"
+          elif [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+            if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              echo "::error::Tag $TAG does not exist"
+              exit 1
+            fi
+          else
+            if [ "$REF" != "refs/heads/master" ]; then
+              echo "::error::Run the workflow on master to create a release tag (got $REF)"
+              exit 1
+            fi
+            TAG="v$(node -p "require('./package.json').version")"
+            if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+                echo "::error::Tag $TAG already exists on another commit. Bump the version first (npx standard-version)."
+                exit 1
+              fi
+              echo "Tag $TAG already points at master"
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git tag -a "$TAG" -m "chore(release): ${TAG#v}"
+              git push origin "refs/tags/$TAG"
+              echo "Created tag $TAG on $(git rev-parse --short HEAD)"
+            fi
+          fi
+
+          git checkout -q "$TAG"
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match package.json version $VERSION"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,7 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ needs.prepare.outputs.tag }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -44,63 +110,59 @@ jobs:
       - run: npm run cov:check
 
   publish:
-    needs: test
+    needs: [prepare, test]
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       contents: write # create the GitHub release
       id-token: write # npm trusted publishing (OIDC) and provenance
     env:
-      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ needs.prepare.outputs.tag }}
       # No dependency cache in the release job, as npm recommends.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
 
-      # Trusted publishing needs npm 11.5.1 or later.
-      - name: Ensure npm supports trusted publishing
+      # Staged publishing needs npm 11.15.0 or later.
+      - name: Ensure npm supports staged publishing
         run: |
           if ! node -e '
-            const [a, b, c] = process.argv[1].split(".").map(Number);
-            process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1);
+            const [a, b] = process.argv[1].split(".").map(Number);
+            process.exit(a > 11 || (a === 11 && b >= 15) ? 0 : 1);
           ' "$(npm -v)"; then
             npm install -g npm@11
           fi
           npm -v
 
-      - name: Check tag matches package.json version
-        id: version
+      - name: Check whether this version is already live
+        id: live
         run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          if [ "v$VERSION" != "$TAG" ]; then
-            echo "::error::Tag $TAG does not match package.json version $VERSION"
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if npm view "base32-key@$VERSION" version >/dev/null 2>&1; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::base32-key@$VERSION is already on npm, skipping publish"
+            echo "live=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::base32-key@$VERSION is already published on npm, skipping"
           else
-            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "live=false" >> "$GITHUB_OUTPUT"
           fi
 
       - run: npm ci
       - run: npm run build
 
-      # Authenticates with OIDC; provenance is generated automatically.
-      - name: Publish to npm
-        if: steps.version.outputs.published == 'false'
-        run: npm publish --access public
+      # Uploads the package to npm's staging area. It is not installable until
+      # a maintainer approves it on npmjs.com (Staged Packages) with 2FA.
+      # Fails if this version is already staged and waiting for approval.
+      - name: Stage on npm
+        if: steps.live.outputs.live == 'false'
+        run: npm stage publish --access public --provenance
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists"
@@ -116,3 +178,13 @@ jobs:
           else
             gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
           fi
+
+      - name: Summary
+        if: steps.live.outputs.live == 'false'
+        run: |
+          {
+            echo "### base32-key@$VERSION is staged on npm"
+            echo
+            echo "It goes live only after approval: npmjs.com, account settings, **Staged Packages**, then **Approve** (2FA),"
+            echo "or \`npm stage list base32-key\` and \`npm stage approve <stage-id>\` from a maintainer's machine."
+          } >> "$GITHUB_STEP_SUMMARY"
