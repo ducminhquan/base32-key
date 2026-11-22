@@ -23,6 +23,7 @@
         "prettierignore",
         "sandboxed",
         "transpiled",
+        "ucgu",
         "typedoc",
         "untracked"
     ],

@@ -16,3 +16,25 @@ test('fromHexString', (t) => {
     t.is(fromHexString(v.hex, false, false, false), v.lcu);
   });
 });
+
+test('fromHexString >> uppercase vectors without checksum', (t) => {
+  testVectors.map((v) => {
+    t.is(fromHexString(v.hex, true, false, true), v.ucgu);
+  });
+});
+
+test('fromHexString >> accepts 0x prefix and uppercase hex', (t) => {
+  t.is(fromHexString('0xc0ffee'), fromHexString('c0ffee'));
+  t.is(fromHexString('0XC0FFEE'), fromHexString('c0ffee'));
+});
+
+test('fromHexString >> invalid', (t) => {
+  t.throws(() => fromHexString(''));
+  t.throws(() => fromHexString('0x'));
+  t.throws(() => fromHexString('zz'));
+  t.throws(() => fromHexString('c0 ff ee'));
+  t.throws(() => fromHexString('c0ffee\n'));
+  t.throws(() => fromHexString((123 as unknown) as string), {
+    instanceOf: TypeError,
+  });
+});

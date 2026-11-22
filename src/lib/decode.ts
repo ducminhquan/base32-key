@@ -39,6 +39,7 @@ function decode(
   const base32num = baseDecode(keyString, digits);
   if (
     base32num == null ||
+    base32num.length === 0 ||
     (grouped && base32num.length != 4 + (checked ? 1 : 0))
   ) {
     throw new Error('Invalid');
@@ -61,7 +62,7 @@ function decode(
  * ### Example (es module)
  * ```js
  * import { toHexString } from 'base32-key'
- * console.log(fromHexString('222ET-3ZZGN'))
+ * console.log(toHexString('222ET-3ZZGN'))
  * // => 'c0ffee'
  * ```
  *
@@ -77,7 +78,7 @@ function decode(
  * @param checked - Include the checksum into Base32-Key.
  * @param upperCase - Use uppercase or lowercase Base32-Key.
  * @returns Base-16 string.
- * @anotherNote Some other value.
+ * @throws Error if the key is empty, malformed or fails its checksum.
  */
 // cspell: enable
 export const toHexString = (
@@ -86,6 +87,9 @@ export const toHexString = (
   checked = true,
   upperCase = true
 ): string => {
+  if (typeof keyString !== 'string') {
+    throw new TypeError('Invalid: expected a string');
+  }
   const result = keyString
     .split('-')
     .map((k) => decode(k, grouped, checked, upperCase))
@@ -97,5 +101,7 @@ export const toHexString = (
   while (i < result.length - 1 && result.charAt(i) === zero) {
     ++i;
   }
-  return result.substring(i);
+  // A key that encodes the value zero may carry no data digits at all
+  // (e.g. the key "2" without groups but with a checksum), which decodes to "".
+  return result.substring(i) || zero;
 };
