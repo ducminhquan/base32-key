@@ -1,6 +1,7 @@
 # base32-key - A base 32 encoding for binary strings
 
 [![CI](https://github.com/ducminhquan/base32-key/actions/workflows/ci.yml/badge.svg)](https://github.com/ducminhquan/base32-key/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ducminhquan/base32-key/badge)](https://scorecard.dev/viewer/?uri=github.com/ducminhquan/base32-key)
 [![GitHub license](https://img.shields.io/github/license/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/releases/)
 [![GitHub tag](https://img.shields.io/github/tag/ducminhquan/base32-key.svg)](https://GitHub.com/ducminhquan/base32-key/tags/)
@@ -54,8 +55,11 @@ Every function takes an optional options object. The old positional booleans
 | `checked`   | `true`    | Add a CRC-5 check digit (one per group when grouped).                        |
 | `case`      | `'upper'` | `'upper'` or `'lower'` alphabet.                                             |
 | `normalize` | see below | Decoding only: ignore whitespace, letter case and where the hyphens are put. |
+| `groups`    | any       | Decoding only: the key must have exactly this many groups.                   |
 
 `normalize` defaults to `false` for `toHexString` and `toBigInt` and to `true` for `validate`.
+
+When decoding, `case: 'auto'` accepts either alphabet and keeps the one whose check digits match.
 
 ```js
 fromHexString('c0ffee', { grouped: false, case: 'lower' });
@@ -77,6 +81,16 @@ validate('222ET-3ZZGX');
 ```
 
 `invalidGroups` holds 0-based group indexes, so you can highlight exactly the group that was mistyped.
+
+Keys of a fixed length, such as product keys, should pass `groups`. Otherwise a key that lost its last group still validates:
+
+```js
+validate('222ET', { groups: 4 });
+// => { valid: false, invalidGroups: [1, 2, 3], code: 'INVALID_LENGTH' }
+
+formatInput('222et3zzgn22', { groups: 2 });
+// => '222ET-3ZZGN'  (extra input is dropped)
+```
 
 ### Errors
 
@@ -163,18 +177,32 @@ npx base32-key encode c0ffee            # 222ET-3ZZGN
 npx base32-key decode 222ET-3ZZGN       # c0ffee
 npx base32-key validate 222ET-3ZZGX     # invalid (CHECKSUM_MISMATCH) in group 2
 npx base32-key generate --count 5 --groups 3
-cat keys.txt | npx base32-key validate  # one key per line; exit code 1 if any is invalid
+cat keys.txt | npx base32-key validate --groups 4 --json  # one key per line; exit code 1 if any is invalid
+npx base32-key encode --file logo.png   # one key holding the file's bytes
+npx base32-key decode --file copy.png <key>
 ```
 
-Options: `--lower`, `--ungrouped`, `--unchecked`, `--normalize` (decode), `--strict` (validate). Run `npx base32-key --help` for the full list.
+Options include `--case upper|lower|auto`, `--ungrouped`, `--unchecked`, `--groups`, `--normalize`, `--strict`, `--upper-hex` and `--json`. Run `npx base32-key --help` for the full list, and `npx base32-key completion bash` (or `zsh`, `fish`) for shell completion.
 
 <!-- cspell:enable -->
+
+### Test vectors
+
+The package ships [`test-vectors.json`](test-vectors.json) with valid keys in every format, invalid keys with their error codes, and `withLength` byte keys. Use it to check another implementation:
+
+```js
+import vectors from 'base32-key/test-vectors.json' with { type: 'json' };
+```
 
 ## Upgrading to 2.0
 
 - Node.js 20 or later is required.
 - The package is built to `dist/` with an `exports` map. Import from `base32-key` only; deep imports such as `base32-key/build/main/...` no longer work.
 - The API is unchanged from 1.1. The positional boolean arguments are still accepted but deprecated.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) to report a vulnerability and for how releases are protected.
 
 ## Releasing
 

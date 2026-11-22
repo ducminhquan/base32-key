@@ -9,12 +9,14 @@ test('resolveOptions >> legacy positional defaults', () => {
     grouped: true,
     checked: true,
     upperCase: true,
+    autoCase: false,
     normalize: false,
   });
   expect(resolveOptions([false, false, false], true)).toEqual({
     grouped: false,
     checked: false,
     upperCase: false,
+    autoCase: false,
     normalize: true,
   });
 });
@@ -24,7 +26,9 @@ test('resolveOptions >> options object', () => {
     grouped: true,
     checked: true,
     upperCase: true,
+    autoCase: false,
     normalize: false,
+    groups: undefined,
   });
   expect(resolveOptions([{}], true).normalize).toEqual(true);
   expect(
@@ -35,7 +39,9 @@ test('resolveOptions >> options object', () => {
     grouped: false,
     checked: false,
     upperCase: false,
+    autoCase: false,
     normalize: true,
+    groups: undefined,
   });
   expect(
     resolveOptions([{ case: 'upper', normalize: false }], true).normalize
@@ -64,4 +70,20 @@ test('fromHexString >> options object matches positional form', () => {
       fromHexString(v.hex, { grouped: false, checked: false, case: 'lower' })
     ).toBe(v.lcu);
   });
+});
+
+test('resolveOptions >> decode-only options', () => {
+  expect(resolveOptions([{ case: 'auto' }], false, true)).toMatchObject({
+    upperCase: true,
+    autoCase: true,
+  });
+  expect(() => resolveOptions([{ case: 'auto' }])).toThrow(TypeError);
+  expect(resolveOptions([{ groups: 4 }], false, true).groups).toBe(4);
+  expect(resolveOptions([{ groups: 4 }]).groups).toBeUndefined();
+  for (const groups of [0, -1, 1.5, '4']) {
+    expect(() => resolveOptions([{ groups }], false, true)).toThrow(RangeError);
+  }
+  expect(() =>
+    resolveOptions([{ groups: 2, grouped: false }], false, true)
+  ).toThrow(TypeError);
 });

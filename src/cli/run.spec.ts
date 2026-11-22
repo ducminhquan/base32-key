@@ -2,13 +2,25 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { run, USAGE } from './run';
 
-const cli = async (argv: string[], stdin?: string) => {
+const cli = async (
+  argv: string[],
+  stdin?: string,
+  files: Map<string, Uint8Array> = new Map()
+) => {
   const out: string[] = [];
   const err: string[] = [];
   const code = await run(argv, {
     stdout: (line) => out.push(line),
     stderr: (line) => err.push(line),
     readStdin: async () => stdin,
+    readFile: async (path) => {
+      const data = files.get(path);
+      if (!data) throw new Error(`ENOENT: ${path}`);
+      return data;
+    },
+    writeFile: async (path, data) => {
+      files.set(path, data);
+    },
     version: '9.9.9',
   });
   return { code, out, err };
@@ -112,5 +124,138 @@ describe('base32-key CLI', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  test('--case and --groups', async () => {
+    expect(
+      (await cli(['decode', '--case', 'auto', 'nb99qj', '--ungrouped'])).out
+    ).toEqual(['c0ffee']);
+    expect((await cli(['encode', '--case', 'lower', 'c0ffee'])).out).toEqual([
+      'aaan3-b99qw',
+    ]);
+    const missing = await cli(['validate', '--groups', '4', '222ET-3ZZGN']);
+    expect(missing.code).toBe(1);
+    expect(missing.out).toEqual([
+      '222ET-3ZZGN: invalid (INVALID_LENGTH) in groups 3, 4',
+    ]);
+    expect((await cli(['decode', '--groups', '2', '222ET-3ZZGN'])).out).toEqual(
+      ['c0ffee']
+    );
+    expect((await cli(['decode', '--upper-hex', '222ET-3ZZGN'])).out).toEqual([
+      'C0FFEE',
+    ]);
+    for (const argv of [
+      ['encode', '--case', 'auto', 'ff'],
+      ['generate', '--case', 'auto'],
+      ['decode', '--case', 'title', 'x'],
+    ]) {
+      expect((await cli(argv)).code).toBe(2);
+    }
+  });
+
+  test('--json', async () => {
+    expect(
+      (await cli(['encode', '--json', 'c0ffee', 'xyz'])).out.map((l) =>
+        JSON.parse(l)
+      )
+    ).toEqual([
+      { input: 'c0ffee', key: '222ET-3ZZGN' },
+      { input: 'xyz', error: 'Invalid hex string: "xyz"', code: 'INVALID_HEX' },
+    ]);
+    expect(
+      JSON.parse((await cli(['decode', '--json', '222ET-3ZZGN'])).out[0])
+    ).toEqual({ input: '222ET-3ZZGN', hex: 'c0ffee' });
+    const result = await cli(
+      ['validate', '--json'],
+      '222ET-3ZZGN\n222ET-3ZZGX\n'
+    );
+    expect(result.code).toBe(1);
+    expect(result.out.map((l) => JSON.parse(l))).toEqual([
+      { input: '222ET-3ZZGN', valid: true, invalidGroups: [] },
+      {
+        input: '222ET-3ZZGX',
+        valid: false,
+        invalidGroups: [1],
+        code: 'CHECKSUM_MISMATCH',
+      },
+    ]);
+    expect(
+      Object.keys(JSON.parse((await cli(['generate', '--json'])).out[0]))
+    ).toEqual(['key']);
+  });
+
+  test('a non-library error in --json mode has no code', async () => {
+    const result = await cli([
+      'decode',
+      '--json',
+      '--ungrouped',
+      '--groups',
+      '2',
+      'nb99qj',
+    ]);
+    expect(result.code).toBe(1);
+    expect(JSON.parse(result.out[0])).toEqual({
+      input: 'nb99qj',
+      error: 'The groups option requires grouped keys',
+      code: null,
+    });
+  });
+
+  test('--file round trip', async () => {
+    const files = new Map([['in.bin', new Uint8Array([0, 0, 1, 255])]]);
+    const encoded = await cli(['encode', '--file', 'in.bin'], undefined, files);
+    expect(encoded.code).toBe(0);
+    const [key] = encoded.out;
+    const decoded = await cli(
+      ['decode', '--file', 'out.bin', key],
+      undefined,
+      files
+    );
+    expect(decoded.out).toEqual(['4 bytes written to out.bin']);
+    expect(files.get('out.bin')).toEqual(new Uint8Array([0, 0, 1, 255]));
+    expect(
+      JSON.parse(
+        (await cli(['encode', '--json', '--file', 'in.bin'], undefined, files))
+          .out[0]
+      )
+    ).toEqual({ file: 'in.bin', bytes: 4, key });
+    expect(
+      JSON.parse(
+        (
+          await cli(
+            ['decode', '--json', '--file', 'o.bin', key],
+            undefined,
+            files
+          )
+        ).out[0]
+      )
+    ).toEqual({ input: key, file: 'o.bin', bytes: 4 });
+    expect(
+      (await cli(['decode', '--file', 'o.bin', key, key], undefined, files))
+        .code
+    ).toBe(2);
+    expect(
+      (
+        await cli(
+          ['decode', '--file', 'o.bin', '222ET-3ZZGN'],
+          undefined,
+          files
+        )
+      ).code
+    ).toBe(1);
+    expect(
+      (await cli(['encode', '--file', 'missing.bin'], undefined, files)).code
+    ).toBe(2);
+  });
+
+  test('completion', async () => {
+    for (const shell of ['bash', 'zsh', 'fish']) {
+      const result = await cli(['completion', shell]);
+      expect(result.code).toBe(0);
+      expect(result.out[0]).toContain('base32-key');
+      expect(result.out[0]).toContain('validate');
+    }
+    expect((await cli(['completion'])).code).toBe(2);
+    expect((await cli(['completion', 'powershell'])).code).toBe(2);
   });
 });

@@ -6,12 +6,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: [
-        'src/**/*.spec.ts',
-        'src/lib/vectors.ts',
-        'src/cli/main.ts',
-        'src/test/**',
-      ],
+      exclude: ['src/**/*.spec.ts', 'src/cli/main.ts', 'src/test/**'],
       thresholds: { 100: true },
     },
   },

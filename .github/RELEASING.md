@@ -1,6 +1,6 @@
 # Releasing
 
-Releases are automated by [`.github/workflows/release.yml`](workflows/release.yml). The workflow tags the version, runs the tests on Node 22 and 24, uploads the package to npm as a [staged package](https://docs.npmjs.com/staged-publishing), and creates a GitHub release whose notes come from `CHANGELOG.md`.
+Releases are automated by [`.github/workflows/release.yml`](workflows/release.yml). The workflow tags the version, runs the tests on Node 22, 24 and 26, uploads the package to npm as a [staged package](https://docs.npmjs.com/staged-publishing), and creates a GitHub release whose notes come from `CHANGELOG.md`.
 
 A staged package is **not installable until a maintainer approves it** on the npm website with two-factor authentication. CI can never put a version live on its own.
 

@@ -12,54 +12,92 @@ export interface EncodeOptions {
 }
 
 /** Options for decoding or validating a key. */
-export interface DecodeOptions extends EncodeOptions {
+export interface DecodeOptions extends Omit<EncodeOptions, 'case'> {
+  /**
+   * Alphabet the key uses. Default `'upper'`. `'auto'` tries both alphabets
+   * and keeps the one whose check digits match (uppercase wins a tie).
+   */
+  readonly case?: KeyCase | 'auto';
   /**
    * Clean up user input before decoding: ignore whitespace, accept letters in
    * either case and, for grouped keys, accept missing or misplaced hyphens.
    * Default `false` for `toHexString`/`toBigInt`, `true` for `validate`.
    */
   readonly normalize?: boolean;
+  /**
+   * Exact number of groups the key must have, e.g. `4` for 80-bit product
+   * keys. A key with fewer or more groups is invalid (`INVALID_LENGTH`).
+   * Grouped keys only. Default: any number of groups.
+   */
+  readonly groups?: number;
 }
 
 export interface ResolvedOptions {
   readonly grouped: boolean;
   readonly checked: boolean;
   readonly upperCase: boolean;
+  /** Try the other alphabet too (`case: 'auto'`). */
+  readonly autoCase: boolean;
   readonly normalize: boolean;
+  /** Required number of groups, if any. */
+  readonly groups?: number;
 }
 
-function resolveCase(value: unknown): boolean {
+function resolveCase(value: unknown, decoding: boolean) {
   if (value === undefined || value === 'upper') {
-    return true;
+    return { upperCase: true, autoCase: false };
   }
   if (value === 'lower') {
-    return false;
+    return { upperCase: false, autoCase: false };
+  }
+  if (value === 'auto' && decoding) {
+    return { upperCase: true, autoCase: true };
   }
   throw new TypeError(`Invalid case option: ${String(value)}`);
 }
 
-/** Reads either an options object or the legacy positional booleans. */
+function resolveGroups(value: unknown, grouped: boolean, decoding: boolean) {
+  if (value === undefined || !decoding) {
+    return undefined;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    throw new RangeError(`groups must be a positive integer, got ${value}`);
+  }
+  if (!grouped) {
+    throw new TypeError('The groups option requires grouped keys');
+  }
+  return value;
+}
+
+/**
+ * Reads either an options object or the legacy positional booleans.
+ * `decoding` allows the decode-only options (`case: 'auto'`, `groups`).
+ */
 export function resolveOptions(
   args: readonly unknown[],
-  normalizeByDefault = false
+  normalizeByDefault = false,
+  decoding = false
 ): ResolvedOptions {
   const [first, checked, upperCase] = args;
   if (typeof first === 'object' && first !== null) {
     const options = first as DecodeOptions;
+    const grouped = options.grouped !== false;
     return {
-      grouped: options.grouped !== false,
+      grouped,
       checked: options.checked !== false,
-      upperCase: resolveCase(options.case),
+      ...resolveCase(options.case, decoding),
       normalize:
         options.normalize === undefined
           ? normalizeByDefault
           : options.normalize,
+      groups: resolveGroups(options.groups, grouped, decoding),
     };
   }
   return {
     grouped: first !== false,
     checked: checked !== false,
     upperCase: upperCase !== false,
+    autoCase: false,
     normalize: normalizeByDefault,
   };
 }
