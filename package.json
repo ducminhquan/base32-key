@@ -1,6 +1,6 @@
 {
   "name": "base32-key",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Human-friendly base 32 keys with per-group check digits: product keys, voucher codes, serial numbers",
   "type": "module",
   "main": "./dist/index.cjs",
