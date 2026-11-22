@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>base32-key</title>
+    <meta
+      name="description"
+      content="Human-friendly Base32 keys with a check digit per group. Try it in the browser."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fafaf9;
+        --fg: #1c1917;
+        --muted: #57534e;
+        --panel: #ffffff;
+        --border: #d6d3d1;
+        --accent: #0f766e;
+        --ok: #15803d;
+        --bad: #b91c1c;
+        --bad-bg: #fee2e2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1917;
+          --fg: #f5f5f4;
+          --muted: #a8a29e;
+          --panel: #292524;
+          --border: #44403c;
+          --accent: #2dd4bf;
+          --ok: #4ade80;
+          --bad: #f87171;
+          --bad-bg: #450a0a;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+      }
+      h1 {
+        margin: 0 0 0.25rem;
+        font-size: 2rem;
+      }
+      h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.1rem;
+      }
+      p.lead {
+        margin: 0 0 2rem;
+        color: var(--muted);
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+      }
+      label {
+        display: block;
+        font-size: 0.875rem;
+        color: var(--muted);
+        margin-bottom: 0.25rem;
+      }
+      input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          1.1rem ui-monospace,
+          monospace;
+      }
+      input[type='checkbox'] {
+        width: auto;
+        accent-color: var(--accent);
+      }
+      input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 0.75rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        border: 0;
+        border-radius: 0.375rem;
+        background: var(--accent);
+        color: var(--bg);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .options {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+      }
+      .options label {
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+        margin: 0;
+        color: var(--fg);
+      }
+      output {
+        display: block;
+        margin-top: 0.75rem;
+        font:
+          1.1rem ui-monospace,
+          monospace;
+        overflow-wrap: anywhere;
+        min-height: 1.6em;
+      }
+      .group {
+        padding: 0 0.1em;
+        border-radius: 0.2em;
+      }
+      .group.bad {
+        color: var(--bad);
+        background: var(--bad-bg);
+        text-decoration: underline wavy;
+      }
+      .status.ok {
+        color: var(--ok);
+      }
+      .status.bad {
+        color: var(--bad);
+      }
+      .status {
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+      }
+      ul.keys {
+        list-style: none;
+        padding: 0;
+        margin: 0.75rem 0 0;
+        font:
+          1.05rem ui-monospace,
+          monospace;
+      }
+      a {
+        color: var(--accent);
+      }
+      code {
+        font-family: ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>base32-key</h1>
+      <p class="lead">
+        Encode numbers as readable keys like <code>222ET-3ZZGN</code>. No
+        look-alike characters, and every group of five carries its own check
+        digit, so a typo points at the exact group.
+        <a href="https://github.com/ducminhquan/base32-key">GitHub</a> ·
+        <a href="api/">API reference</a> ·
+        <a href="https://www.npmjs.com/package/base32-key">npm</a>
+      </p>
+
+      <section>
+        <h2>Options</h2>
+        <div class="options">
+          <label><input type="checkbox" id="lower" /> lowercase</label>
+          <label
+            ><input type="checkbox" id="grouped" checked /> groups of 5</label
+          >
+          <label
+            ><input type="checkbox" id="checked" checked /> check digits</label
+          >
+        </div>
+      </section>
+
+      <section>
+        <h2>Check a key</h2>
+        <label for="key"
+          >Type or paste a key. Spaces and case are fixed for you.</label
+        >
+        <input
+          id="key"
+          autocomplete="off"
+          spellcheck="false"
+          value="222ET-3ZZGN"
+        />
+        <output id="key-groups"></output>
+        <div class="status" id="key-status" role="status"></div>
+      </section>
+
+      <section>
+        <h2>Encode hex</h2>
+        <label for="hex">Hex value</label>
+        <input id="hex" autocomplete="off" spellcheck="false" value="c0ffee" />
+        <output id="hex-out"></output>
+      </section>
+
+      <section>
+        <h2>Generate</h2>
+        <div class="row">
+          <label for="groups" style="margin: 0">Groups</label>
+          <input
+            id="groups"
+            type="number"
+            min="1"
+            max="12"
+            value="4"
+            style="width: 5rem"
+          />
+          <button id="generate" type="button">Generate 5 keys</button>
+        </div>
+        <ul class="keys" id="keys"></ul>
+      </section>
+    </main>
+
+    <script type="module">
+      import {
+        formatInput,
+        fromHexString,
+        generateKey,
+        toHexString,
+        validate,
+      } from './base32-key.js';
+
+      const $ = (id) => document.getElementById(id);
+      const options = () => ({
+        case: $('lower').checked ? 'lower' : 'upper',
+        grouped: $('grouped').checked,
+        checked: $('checked').checked,
+      });
+      const describe = (code) =>
+        ({
+          INVALID_CHARACTER: 'has a character that is not in the alphabet',
+          INVALID_LENGTH: 'is too short or too long',
+          CHECKSUM_MISMATCH: 'has a check digit that does not match',
+        })[code] ?? code;
+
+      function checkKey() {
+        const opts = options();
+        const raw = $('key').value;
+        const formatted = formatInput(raw, opts);
+        const groups = opts.grouped ? formatted.split('-') : [formatted];
+        const result = validate(raw, opts);
+        const out = $('key-groups');
+        out.replaceChildren();
+        groups.forEach((group, i) => {
+          if (i > 0) out.append('-');
+          const span = document.createElement('span');
+          span.className = result.invalidGroups.includes(i)
+            ? 'group bad'
+            : 'group';
+          span.textContent = group;
+          out.append(span);
+        });
+        const status = $('key-status');
+        if (!formatted) {
+          status.className = 'status';
+          status.textContent = '';
+        } else if (result.valid) {
+          status.className = 'status ok';
+          status.textContent = `Valid. Hex value: ${toHexString(formatted, opts)}`;
+        } else {
+          const which = result.invalidGroups.map((i) => i + 1).join(', ');
+          status.className = 'status bad';
+          const noun = result.invalidGroups.length === 1 ? 'Group' : 'Groups';
+          const verb = result.invalidGroups.length === 1 ? 'has' : 'have';
+          status.textContent = `${noun} ${which} ${describe(result.code).replace(/^has/, verb)}.`;
+        }
+      }
+
+      function encodeHex() {
+        try {
+          $('hex-out').textContent = fromHexString(
+            $('hex').value.trim(),
+            options()
+          );
+        } catch (error) {
+          $('hex-out').textContent = error.message;
+        }
+      }
+
+      function generate() {
+        const groups = Math.min(
+          12,
+          Math.max(1, Number($('groups').value) || 4)
+        );
+        const list = $('keys');
+        list.replaceChildren();
+        for (let i = 0; i < 5; ++i) {
+          const item = document.createElement('li');
+          item.textContent = generateKey({ ...options(), groups });
+          list.append(item);
+        }
+      }
+
+      const refresh = () => {
+        checkKey();
+        encodeHex();
+      };
+      $('key').addEventListener('input', checkKey);
+      $('hex').addEventListener('input', encodeHex);
+      $('generate').addEventListener('click', generate);
+      for (const id of ['lower', 'grouped', 'checked']) {
+        $(id).addEventListener('change', refresh);
+      }
+      refresh();
+      generate();
+    </script>
+  </body>
+</html>

@@ -1,4 +1,6 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
+
+import { thrown } from '../test/thrown';
 
 import { fromBigInt, toBigInt } from './bigint';
 import { toHexString, validate } from './decode';
@@ -17,97 +19,92 @@ const counter = () => {
 };
 
 // cspell: disable
-test('generateKey >> deterministic with a custom random source', (t) => {
+test('generateKey >> deterministic with a custom random source', () => {
   const first = generateKey({ random: counter() });
-  t.is(first, generateKey({ random: counter() }));
-  t.is(first.replace(/(.)....(-|$)/g, '$1').length, 4);
-  t.true(first.startsWith('2345'));
+  expect(first).toBe(generateKey({ random: counter() }));
+  expect(first.replace(/(.)....(-|$)/g, '$1').length).toBe(4);
+  expect(first.startsWith('2345')).toBe(true);
   const key = generateKey({ random: () => new Uint8Array(16) });
-  t.is(key, '22222-22222-22222-22222');
-  t.is(toHexString(key), '0');
+  expect(key).toBe('22222-22222-22222-22222');
+  expect(toHexString(key)).toBe('0');
 });
 
-test('generateKey >> shape follows the options', (t) => {
+test('generateKey >> shape follows the options', () => {
   const random = counter();
-  t.regex(
-    generateKey({ random }),
+  expect(generateKey({ random })).toMatch(
     /^([2-9A-HJ-NP-Z]{5}-){3}[2-9A-HJ-NP-Z]{5}$/
   );
-  t.regex(generateKey({ random, groups: 2 }), /^[2-9A-Z]{5}-[2-9A-Z]{5}$/);
-  t.regex(
-    generateKey({ random, case: 'lower' }),
+  expect(generateKey({ random, groups: 2 })).toMatch(
+    /^[2-9A-Z]{5}-[2-9A-Z]{5}$/
+  );
+  expect(generateKey({ random, case: 'lower' })).toMatch(
     /^([a-z2-9]{5}-){3}[a-z2-9]{5}$/
   );
-  t.regex(
-    generateKey({ random, checked: false }),
+  expect(generateKey({ random, checked: false })).toMatch(
     /^([2-9A-Z]{4}-){3}[2-9A-Z]{4}$/
   );
-  t.is(
-    generateKey({ random: () => new Uint8Array(16), grouped: false }),
-    '22222222222222222'
-  );
-  t.is(
+  expect(
+    generateKey({ random: () => new Uint8Array(16), grouped: false })
+  ).toBe('22222222222222222');
+  expect(
     generateKey({
       random: () => new Uint8Array(20),
       checked: false,
       grouped: false,
       groups: 5,
-    }).length,
-    20
-  );
+    }).length
+  ).toBe(20);
 });
 
-test('generateKey >> masks random bytes to 5 bits', (t) => {
+test('generateKey >> masks random bytes to 5 bits', () => {
   const key = generateKey({
     random: (n) => new Uint8Array(n).fill(255),
     checked: false,
   });
-  t.is(key, 'ZZZZ-ZZZZ-ZZZZ-ZZZZ');
+  expect(key).toBe('ZZZZ-ZZZZ-ZZZZ-ZZZZ');
 });
 
-test('generateKey >> keys are valid', (t) => {
+test('generateKey >> keys are valid', () => {
   const random = counter();
   for (let i = 0; i < 20; ++i) {
-    t.true(validate(generateKey({ random })).valid);
+    expect(validate(generateKey({ random })).valid).toBe(true);
   }
 });
 
-test('generateKey >> filter', (t) => {
+test('generateKey >> filter', () => {
   let calls = 0;
   const key = generateKey({
     random: counter(),
     filter: () => ++calls === 3,
   });
-  t.is(calls, 3);
-  t.true(validate(key).valid);
+  expect(calls).toBe(3);
+  expect(validate(key).valid).toBe(true);
 
-  const error = t.throws<Base32KeyError>(() =>
+  const error = thrown<Base32KeyError>(() =>
     generateKey({ random: counter(), filter: () => false, maxAttempts: 5 })
   );
-  t.is(error.code, 'GENERATION_FAILED');
+  expect(error.code).toBe('GENERATION_FAILED');
 });
 
-test('generateKey >> rejects bad options', (t) => {
-  t.throws(() => generateKey({ groups: 0 }), { instanceOf: RangeError });
-  t.throws(() => generateKey({ groups: 1.5 }), { instanceOf: RangeError });
-  t.throws(() => generateKey({ maxAttempts: 0 }), { instanceOf: RangeError });
-  t.throws(() => generateKey({ random: () => new Uint8Array(3) }), {
-    instanceOf: RangeError,
-  });
-  t.throws(
-    () => generateKey({ random: () => (undefined as unknown) as Uint8Array }),
-    { instanceOf: RangeError }
+test('generateKey >> rejects bad options', () => {
+  expect(() => generateKey({ groups: 0 })).toThrow(RangeError);
+  expect(() => generateKey({ groups: 1.5 })).toThrow(RangeError);
+  expect(() => generateKey({ maxAttempts: 0 })).toThrow(RangeError);
+  expect(() => generateKey({ random: () => new Uint8Array(3) })).toThrow(
+    RangeError
   );
+  expect(() =>
+    generateKey({ random: () => undefined as unknown as Uint8Array })
+  ).toThrow(RangeError);
 });
 
-test.serial('generateKey >> default random source', (t) => {
+test('generateKey >> default random source', () => {
   const crypto = (globalThis as { crypto?: unknown }).crypto;
   if (crypto) {
     const keys = new Set([generateKey(), generateKey(), generateKey()]);
-    t.is(keys.size, 3);
+    expect(keys.size).toBe(3);
   } else {
-    t.is(
-      t.throws<Base32KeyError>(() => generateKey()).code,
+    expect(thrown<Base32KeyError>(() => generateKey()).code).toBe(
       'NO_RANDOM_SOURCE'
     );
   }
@@ -128,22 +125,20 @@ const withGlobalCrypto = (value: unknown, run: () => void) => {
   }
 };
 
-test.serial('generateKey >> reports a missing random source', (t) => {
+test('generateKey >> reports a missing random source', () => {
   withGlobalCrypto(undefined, () => {
-    t.is(
-      t.throws<Base32KeyError>(() => generateKey()).code,
+    expect(thrown<Base32KeyError>(() => generateKey()).code).toBe(
       'NO_RANDOM_SOURCE'
     );
   });
   withGlobalCrypto({}, () => {
-    t.is(
-      t.throws<Base32KeyError>(() => generateKey()).code,
+    expect(thrown<Base32KeyError>(() => generateKey()).code).toBe(
       'NO_RANDOM_SOURCE'
     );
   });
 });
 
-test.serial('generateKey >> uses globalThis.crypto by default', (t) => {
+test('generateKey >> uses globalThis.crypto by default', () => {
   const calls: number[] = [];
   const fake = {
     getRandomValues(array: Uint8Array) {
@@ -152,24 +147,21 @@ test.serial('generateKey >> uses globalThis.crypto by default', (t) => {
     },
   };
   withGlobalCrypto(fake, () => {
-    t.is(generateKey({ checked: false, groups: 2 }), 'ZZZZ-ZZZZ');
+    expect(generateKey({ checked: false, groups: 2 })).toBe('ZZZZ-ZZZZ');
   });
-  t.deepEqual(calls, [8]);
+  expect(calls).toEqual([8]);
 });
 
-test('fromBigInt / toBigInt', (t) => {
-  t.is(fromBigInt(BigInt(12648430)), '222ET-3ZZGN');
-  t.is(fromBigInt(BigInt(0)), '22222');
-  t.is(
-    fromBigInt(BigInt(12648430), { grouped: false, case: 'lower' }),
+test('fromBigInt / toBigInt', () => {
+  expect(fromBigInt(BigInt(12648430))).toBe('222ET-3ZZGN');
+  expect(fromBigInt(BigInt(0))).toBe('22222');
+  expect(fromBigInt(BigInt(12648430), { grouped: false, case: 'lower' })).toBe(
     'nb99qj'
   );
-  t.is(toBigInt('222ET-3ZZGN'), BigInt(12648430));
-  t.is(toBigInt('222et 3zzgn', { normalize: true }), BigInt(12648430));
+  expect(toBigInt('222ET-3ZZGN')).toBe(BigInt(12648430));
+  expect(toBigInt('222et 3zzgn', { normalize: true })).toBe(BigInt(12648430));
   const big = BigInt('0xfedcba9876543210');
-  t.is(toBigInt(fromBigInt(big)), big);
-  t.throws(() => fromBigInt(BigInt(-1)), { instanceOf: RangeError });
-  t.throws(() => fromBigInt((5 as unknown) as bigint), {
-    instanceOf: TypeError,
-  });
+  expect(toBigInt(fromBigInt(big))).toBe(big);
+  expect(() => fromBigInt(BigInt(-1))).toThrow(RangeError);
+  expect(() => fromBigInt(5 as unknown as bigint)).toThrow(TypeError);
 });

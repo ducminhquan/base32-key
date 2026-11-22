@@ -1,7 +1,7 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import { baseDecode } from './utils';
 
-test('baseDecode', (t) => {
-  t.falsy(baseDecode('coffee', 'abcdef'));
+test('baseDecode', () => {
+  expect(baseDecode('coffee', 'abcdef')).toBeFalsy();
 });

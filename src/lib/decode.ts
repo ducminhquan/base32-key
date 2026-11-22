@@ -120,7 +120,14 @@ function analyze(keyString: string, options: ResolvedOptions) {
   return { hex, invalidGroups, code };
 }
 
-function decodeKey(keyString: unknown, options: ResolvedOptions) {
+/**
+ * Decodes and verifies a key, returning every data digit as hex, leading
+ * zeroes included (5 hex digits per group).
+ */
+export function decodeToPaddedHex(
+  keyString: unknown,
+  options: ResolvedOptions
+): string {
   if (typeof keyString !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
@@ -138,6 +145,11 @@ function decodeKey(keyString: unknown, options: ResolvedOptions) {
       invalidGroups
     );
   }
+  return hex;
+}
+
+function decodeKey(keyString: unknown, options: ResolvedOptions) {
+  const hex = decodeToPaddedHex(keyString, options);
 
   // Trim leading zeroes from result.
   let i = 0;

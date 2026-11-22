@@ -1,40 +1,40 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import { fromHexString } from './encode';
 import { testVectors } from './vectors';
 
-test('fromHexString', (t) => {
+// cspell: disable
+
+test('fromHexString', () => {
   testVectors.map((v) => {
-    t.is(fromHexString(v.hex), v.ucg);
-    t.is(fromHexString(v.hex, true, true, true), v.ucg);
-    t.is(fromHexString(v.hex, true, true, false), v.lcg);
-    t.is(fromHexString(v.hex, false, true, true), v.uc);
-    t.is(fromHexString(v.hex, false, true, false), v.lc);
+    expect(fromHexString(v.hex)).toBe(v.ucg);
+    expect(fromHexString(v.hex, true, true, true)).toBe(v.ucg);
+    expect(fromHexString(v.hex, true, true, false)).toBe(v.lcg);
+    expect(fromHexString(v.hex, false, true, true)).toBe(v.uc);
+    expect(fromHexString(v.hex, false, true, false)).toBe(v.lc);
 
-    t.is(fromHexString(v.hex, true, false, false), v.lcgu);
-    t.is(fromHexString(v.hex, false, false, true), v.ucu);
-    t.is(fromHexString(v.hex, false, false, false), v.lcu);
+    expect(fromHexString(v.hex, true, false, false)).toBe(v.lcgu);
+    expect(fromHexString(v.hex, false, false, true)).toBe(v.ucu);
+    expect(fromHexString(v.hex, false, false, false)).toBe(v.lcu);
   });
 });
 
-test('fromHexString >> uppercase vectors without checksum', (t) => {
+test('fromHexString >> uppercase vectors without checksum', () => {
   testVectors.map((v) => {
-    t.is(fromHexString(v.hex, true, false, true), v.ucgu);
+    expect(fromHexString(v.hex, true, false, true)).toBe(v.ucgu);
   });
 });
 
-test('fromHexString >> accepts 0x prefix and uppercase hex', (t) => {
-  t.is(fromHexString('0xc0ffee'), fromHexString('c0ffee'));
-  t.is(fromHexString('0XC0FFEE'), fromHexString('c0ffee'));
+test('fromHexString >> accepts 0x prefix and uppercase hex', () => {
+  expect(fromHexString('0xc0ffee')).toBe(fromHexString('c0ffee'));
+  expect(fromHexString('0XC0FFEE')).toBe(fromHexString('c0ffee'));
 });
 
-test('fromHexString >> invalid', (t) => {
-  t.throws(() => fromHexString(''));
-  t.throws(() => fromHexString('0x'));
-  t.throws(() => fromHexString('zz'));
-  t.throws(() => fromHexString('c0 ff ee'));
-  t.throws(() => fromHexString('c0ffee\n'));
-  t.throws(() => fromHexString((123 as unknown) as string), {
-    instanceOf: TypeError,
-  });
+test('fromHexString >> invalid', () => {
+  expect(() => fromHexString('')).toThrow();
+  expect(() => fromHexString('0x')).toThrow();
+  expect(() => fromHexString('zz')).toThrow();
+  expect(() => fromHexString('c0 ff ee')).toThrow();
+  expect(() => fromHexString('c0ffee\n')).toThrow();
+  expect(() => fromHexString(123 as unknown as string)).toThrow(TypeError);
 });

@@ -1,2 +1,6 @@
-# package.json is formatted by package managers, so we ignore it here
-package.json
+dist
+coverage
+docs
+_site
+package-lock.json
+CHANGELOG.md
