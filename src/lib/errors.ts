@@ -5,6 +5,7 @@
  * - `INVALID_CHARACTER`: a group contains a character outside the alphabet.
  * - `INVALID_LENGTH`: the key, or one of its groups, has the wrong length.
  * - `CHECKSUM_MISMATCH`: a group's check digit does not match its data.
+ * - `INVALID_PREFIX`: the key does not start with the expected `prefix`.
  * - `GENERATION_FAILED`: `generateKey` found no key accepted by the filter.
  * - `NO_RANDOM_SOURCE`: no secure random source is available.
  */
@@ -13,6 +14,7 @@ export type Base32KeyErrorCode =
   | 'INVALID_CHARACTER'
   | 'INVALID_LENGTH'
   | 'CHECKSUM_MISMATCH'
+  | 'INVALID_PREFIX'
   | 'GENERATION_FAILED'
   | 'NO_RANDOM_SOURCE';
 

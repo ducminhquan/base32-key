@@ -9,6 +9,12 @@ export interface EncodeOptions {
   readonly checked?: boolean;
   /** Alphabet to use. Default `'upper'`. */
   readonly case?: KeyCase;
+  /**
+   * Letters or digits put in front of the key, joined with a hyphen, e.g.
+   * `'LC'` gives `LC-222ET-3ZZGN`. Decoding then requires the same prefix
+   * and removes it.
+   */
+  readonly prefix?: string;
 }
 
 /** Options for decoding or validating a key. */
@@ -41,6 +47,7 @@ export interface ResolvedOptions {
   readonly normalize: boolean;
   /** Required number of groups, if any. */
   readonly groups?: number;
+  readonly prefix?: string;
 }
 
 function resolveCase(value: unknown, decoding: boolean) {
@@ -69,6 +76,18 @@ function resolveGroups(value: unknown, grouped: boolean, decoding: boolean) {
   return value;
 }
 
+function resolvePrefix(value: unknown) {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  if (typeof value !== 'string' || !/^[A-Za-z0-9]+$/.test(value)) {
+    throw new TypeError(
+      `prefix must be letters and digits only, got ${String(value)}`
+    );
+  }
+  return value;
+}
+
 /**
  * Reads either an options object or the legacy positional booleans.
  * `decoding` allows the decode-only options (`case: 'auto'`, `groups`).
@@ -91,6 +110,7 @@ export function resolveOptions(
           ? normalizeByDefault
           : options.normalize,
       groups: resolveGroups(options.groups, grouped, decoding),
+      prefix: resolvePrefix(options.prefix),
     };
   }
   return {

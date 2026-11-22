@@ -1,0 +1,11 @@
+name: Feature request
+description: An idea for base32-key
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem first; a proposed API is welcome too.
+    validations:
+      required: true

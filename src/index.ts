@@ -9,3 +9,13 @@ export type { GenerateOptions } from './lib/generate';
 export type { DecodeOptions, EncodeOptions, KeyCase } from './lib/options';
 export { fromBytes, MAX_LENGTH_PREFIXED_BYTES, toBytes } from './lib/bytes';
 export type { BytesDecodeOptions, BytesEncodeOptions } from './lib/bytes';
+export { suggest } from './lib/suggest';
+export type { SuggestOptions } from './lib/suggest';
+export { keySchema } from './lib/schema';
+export type { StandardSchemaV1 } from './lib/schema';
+export { attachKeyInput, keyInputState } from './lib/input';
+export type {
+  KeyInputElement,
+  KeyInputOptions,
+  KeyInputState,
+} from './lib/input';

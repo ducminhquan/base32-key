@@ -26,6 +26,11 @@ function parseHexString(base16String: string) {
   return base16Numbers;
 }
 
+/** Puts the `prefix` option, if any, in front of a key. */
+export function addPrefix(key: string, prefix: string | undefined) {
+  return prefix ? `${prefix}-${key}` : key;
+}
+
 export function encodeBase32(
   base32Numbers: number[],
   grouped: boolean,
@@ -127,8 +132,11 @@ export function fromHexString(
   base16String: string,
   ...args: unknown[]
 ): string {
-  const { grouped, checked, upperCase } = resolveOptions(args);
+  const { grouped, checked, upperCase, prefix } = resolveOptions(args);
   const base16Numbers = parseHexString(base16String);
   const base32Numbers = numberToBase32(base16Numbers);
-  return encodeBase32(base32Numbers, grouped, checked, upperCase);
+  return addPrefix(
+    encodeBase32(base32Numbers, grouped, checked, upperCase),
+    prefix
+  );
 }

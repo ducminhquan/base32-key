@@ -1,0 +1,24 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: The call or command you ran, what you expected and what you got.
+      placeholder: "toHexString('222ET-3ZZGN') returned … but I expected …"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: base32-key version
+      placeholder: '2.2.0'
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: Node.js 22, Chrome 140, …

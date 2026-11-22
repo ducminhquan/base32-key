@@ -3,7 +3,7 @@
 // Run `npm run site`, which builds dist/ and docs/ first.
 import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 
-for (const required of ['dist/index.js', 'docs/index.html']) {
+for (const required of ['dist/base32-key.min.js', 'docs/index.html']) {
   if (!existsSync(required)) {
     throw new Error(`${required} is missing: run "npm run site"`);
   }
@@ -12,6 +12,7 @@ for (const required of ['dist/index.js', 'docs/index.html']) {
 rmSync('_site', { recursive: true, force: true });
 mkdirSync('_site');
 cpSync('site', '_site', { recursive: true });
-cpSync('dist/index.js', '_site/base32-key.js');
+cpSync('dist/base32-key.min.js', '_site/base32-key.min.js');
+cpSync('dist/base32-key.min.js.map', '_site/base32-key.min.js.map');
 cpSync('docs', '_site/api', { recursive: true });
 console.log('Site written to _site/');
