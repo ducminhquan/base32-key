@@ -3,8 +3,9 @@
 # Release flow:
 #   npm run release      # bump version, update CHANGELOG, commit, tag, push
 #
-# Required repository secret: NPM_TOKEN (npm granular access token with
-# read and write access to the base32-key package). See .github/RELEASING.md.
+# Authentication uses npm trusted publishing (OIDC): no npm token or secret.
+# The trusted publisher must be configured on npmjs.com for this repository,
+# workflow file "release.yml" and environment "npm". See .github/RELEASING.md.
 
 name: Release
 
@@ -48,18 +49,29 @@ jobs:
     environment: npm
     permissions:
       contents: write # create the GitHub release
-      id-token: write # npm provenance
+      id-token: write # npm trusted publishing (OIDC) and provenance
     env:
       TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
+      # No dependency cache in the release job, as npm recommends.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          node-version: 24
           registry-url: https://registry.npmjs.org/
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Ensure npm supports trusted publishing
+        run: |
+          if ! node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1);
+          ' "$(npm -v)"; then
+            npm install -g npm@11
+          fi
+          npm -v
 
       - name: Check tag matches package.json version
         id: version
@@ -80,11 +92,10 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      # Authenticates with OIDC; provenance is generated automatically.
       - name: Publish to npm
         if: steps.version.outputs.published == 'false'
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
 
       - name: Create GitHub release
         env:
