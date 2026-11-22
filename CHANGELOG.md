@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.0](https://github.com/ducminhquan/base32-key/compare/v1.1.0...v3.0.0) (2026-11-22)
+
+### ⚠ BREAKING CHANGES
+
+* Node.js 20 or later is required. The build output moved from build/ to dist/ and the package has an exports map, so deep imports such as base32-key/build/main/... no longer resolve. The public API is unchanged.
+
+### Features
+
+* required group count, auto alphabet, CLI JSON/file modes, shared test vectors ([#10](https://github.com/ducminhquan/base32-key/issues/10)) ([56c01b9](https://github.com/ducminhquan/base32-key/commit/56c01b93bb1bcf8362ea3bcbd9a7de0014e62882))
+* v2 toolchain, ESM/CJS exports, bytes API, CLI and demo page ([#6](https://github.com/ducminhquan/base32-key/issues/6)) ([546f0d4](https://github.com/ducminhquan/base32-key/commit/546f0d48d60086cfbdf64620c8cf2b4b843ee88f))
+
 ## [2.0.0](https://github.com/ducminhquan/base32-key/compare/v1.1.0...v2.0.0) (2026-11-22)
 
 ### ⚠ BREAKING CHANGES
