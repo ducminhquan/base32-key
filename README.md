@@ -7,6 +7,8 @@
 
 [![NPM](https://nodei.co/npm/base32-key.png?downloads=true&stars=true)](https://www.npmjs.com/package/base32-key)
 
+**[Try it in the browser](https://ducminhquan.github.io/base32-key/)** · [API reference](https://ducminhquan.github.io/base32-key/api/)
+
 ## Usage
 
 ### Install
@@ -16,6 +18,8 @@
     # or
 
     yarn add base32-key
+
+Node.js 20 or later, or any modern browser. The package ships ES module and CommonJS builds with TypeScript types.
 
 <!-- cspell:disable -->
 
@@ -32,8 +36,7 @@ console.log(toHexString('222ET-3ZZGN'));
 ### Example (commonjs)
 
 ```js
-var fromHexString = require('base32-key').fromHexString;
-var toHexString = require('base32-key').toHexString;
+const { fromHexString, toHexString } = require('base32-key');
 console.log(fromHexString('c0ffee'));
 // => '222ET-3ZZGN'
 console.log(toHexString('222ET-3ZZGN'));
@@ -114,8 +117,7 @@ generateKey();
 generateKey({ groups: 3, filter: (key) => !blocklist.has(key) });
 ```
 
-`generateKey` uses `crypto.getRandomValues` (browsers, Node.js 19+). On older
-Node.js pass `random: (n) => require('crypto').randomBytes(n)`.
+`generateKey` uses `crypto.getRandomValues`. Pass `random: (n) => bytes` to use another source.
 
 ### Numbers
 
@@ -128,7 +130,51 @@ toBigInt('222ET-3ZZGN');
 // => 12648430n
 ```
 
+### Bytes
+
+```js
+import { fromBytes, toBytes } from 'base32-key';
+
+fromBytes(new Uint8Array([0xc0, 0xff, 0xee]));
+// => '222ET-3ZZGN'
+toBytes('222ET-3ZZGN');
+// => Uint8Array [0xc0, 0xff, 0xee]
+```
+
+A key stores a number, so leading zero bytes are lost. Two ways to keep them:
+
+```js
+// The length is fixed and known, e.g. 16-byte tokens:
+toBytes(key, { length: 16 });
+
+// The length varies: store it in an extra first group.
+const key = fromBytes(new Uint8Array([0, 0xff]), { withLength: true });
+// => '2224C-229ZN'
+toBytes(key, { withLength: true });
+// => Uint8Array [0x00, 0xff]
+```
+
+With `withLength`, a key that lost or gained groups fails with `INVALID_LENGTH` instead of decoding to the wrong bytes.
+
+### Command line
+
+```sh
+npx base32-key encode c0ffee            # 222ET-3ZZGN
+npx base32-key decode 222ET-3ZZGN       # c0ffee
+npx base32-key validate 222ET-3ZZGX     # invalid (CHECKSUM_MISMATCH) in group 2
+npx base32-key generate --count 5 --groups 3
+cat keys.txt | npx base32-key validate  # one key per line; exit code 1 if any is invalid
+```
+
+Options: `--lower`, `--ungrouped`, `--unchecked`, `--normalize` (decode), `--strict` (validate). Run `npx base32-key --help` for the full list.
+
 <!-- cspell:enable -->
+
+## Upgrading to 2.0
+
+- Node.js 20 or later is required.
+- The package is built to `dist/` with an `exports` map. Import from `base32-key` only; deep imports such as `base32-key/build/main/...` no longer work.
+- The API is unchanged from 1.1. The positional boolean arguments are still accepted but deprecated.
 
 ## Releasing
 
@@ -243,10 +289,13 @@ Instead, I propose a 5-bit cyclic redundancy check, so that the check digit is a
 
 The CRC is based on the polynomial x^5 + x^2 + 1 (also known as CRC-5-USB). This particular polynomial was chosen because, when used in a 5 character group, it detects:
 
+<!-- cspell:disable -->
+
 - any individual character replacement (e.g. ABCDE -> XBCDE).
 - any transposition of adjacent characters (e.g. ABCDE -> BACDE).
-<!-- cspell:disable-next-line -->
 - any substitution of one character with another (e.g. 22ABC -> ZZABC).
+
+<!-- cspell:enable -->
 
 The first two kinds of errors are common when entering codes using a keyboard, while the third kind occurs when one character is mistaken for another (like 2 for Z, one of the ambiguous pairs that we didn't eliminate from the alphabet).
 
@@ -368,4 +417,4 @@ There are many ways to address this problem, with different advantages and disad
 
 In the end I decided to not define any padding, because different schemes are suitable for different use cases. For example, if we use the base 32 encoding to generate 120 bit product keys, the output always consists of 6 groups, and no padding is needed. Similarly, if leading zeros do not change the interpretation of the input (for example, when encoding large integers) encoding the number of padding bytes is unnecessary.
 
-For use cases where the input length does matter, it is easy to perpend a fixed-size prefix that specifies the length of the original input. This would also allow truncated codes to be detected.
+For use cases where the input length does matter, it is easy to prepend a fixed-size prefix that specifies the length of the original input. This would also allow truncated codes to be detected. `fromBytes(bytes, { withLength: true })` does this with one extra group.

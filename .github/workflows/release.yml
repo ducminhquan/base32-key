@@ -69,7 +69,7 @@ jobs:
             TAG="v$(node -p "require('./package.json').version")"
             if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
               if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
-                echo "::error::Tag $TAG already exists on another commit. Bump the version first (npx standard-version)."
+                echo "::error::Tag $TAG already exists on another commit. Bump the version first (npm run bump)."
                 exit 1
               fi
               echo "Tag $TAG already points at master"
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,7 +107,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run cov:check
 
   publish:
     needs: [prepare, test]

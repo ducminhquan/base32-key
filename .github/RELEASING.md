@@ -1,6 +1,6 @@
 # Releasing
 
-Releases are automated by [`.github/workflows/release.yml`](workflows/release.yml). The workflow tags the version, runs the tests on Node 18, 20 and 22, uploads the package to npm as a [staged package](https://docs.npmjs.com/staged-publishing), and creates a GitHub release whose notes come from `CHANGELOG.md`.
+Releases are automated by [`.github/workflows/release.yml`](workflows/release.yml). The workflow tags the version, runs the tests on Node 22 and 24, uploads the package to npm as a [staged package](https://docs.npmjs.com/staged-publishing), and creates a GitHub release whose notes come from `CHANGELOG.md`.
 
 A staged package is **not installable until a maintainer approves it** on the npm website with two-factor authentication. CI can never put a version live on its own.
 
@@ -24,13 +24,13 @@ Nothing needs to be configured in GitHub. The `npm` environment is created on th
 
 ## Cutting a release
 
-1. Bump the version on `master`. `npx standard-version` updates `package.json`, `package-lock.json` and `CHANGELOG.md` from the commit messages and commits the result. Merge that commit to `master` (directly or through a pull request).
+1. Bump the version on `master`. `npm run bump` (commit-and-tag-version) updates `package.json`, `package-lock.json` and `CHANGELOG.md` from the commit messages and commits the result. Merge that commit to `master` (directly or through a pull request).
 2. Start the release, either way:
    - **From GitHub:** _Actions → Release → Run workflow_, branch `master`, leave the tag empty. The workflow creates the tag `vX.Y.Z` from `package.json` on the latest `master` commit.
    - **From a terminal:** `npm run release` bumps, tags and pushes in one step; the tag push starts the workflow.
 3. Approve the staged version: on the npm website open your account settings, **Staged Packages**, review `base32-key`, click **Approve** and confirm with 2FA. From a terminal the same is `npm stage list base32-key` then `npm stage approve <stage-id>` (npm 11.15.0 or later). To discard it instead, use **Reject** or `npm stage reject <stage-id>`.
 
-To force a specific bump, use `npx standard-version --release-as minor` (or `major`, `patch`, or an exact version).
+To force a specific bump, use `npm run bump -- --release-as minor` (or `major`, `patch`, or an exact version).
 
 ## Safety checks
 
