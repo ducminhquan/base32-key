@@ -22,7 +22,7 @@ Human-friendly keys such as `222ET-3ZZGN` for product keys, vouchers and codes p
 
     yarn add base32-key
 
-Node.js 20 or later, or any modern browser. The package ships ES module and CommonJS builds with TypeScript types.
+Node.js 22 or later, or any modern browser. The package ships ES module and CommonJS builds with TypeScript types.
 
 <!-- cspell:disable -->
 
@@ -48,8 +48,8 @@ console.log(toHexString('222ET-3ZZGN'));
 
 ### Options
 
-Every function takes an optional options object. The old positional booleans
-(`fromHexString(hex, grouped, checked, upperCase)`) still work but are deprecated.
+Every function takes an optional options object. The positional booleans of 1.x
+were removed in 3.0 (see [Upgrading to 3.0](#upgrading-to-30)).
 
 | Option      | Default   | Meaning                                                                      |
 | ----------- | --------- | ---------------------------------------------------------------------------- |
@@ -245,6 +245,26 @@ toBytes(key, { withLength: true });
 
 With `withLength`, a key that lost or gained groups fails with `INVALID_LENGTH` instead of decoding to the wrong bytes.
 
+### Signed keys
+
+When a key must not be guessable even though its contents are (a serial number, an order id), sign it. `signKey` appends a truncated HMAC-SHA256 tag to the payload, and `verifyKey` returns the payload only for keys made with the same secret. It uses WebCrypto, so it works in Node.js 22+ and in browsers, and both functions return a promise.
+
+```js
+import { signKey, verifyKey } from 'base32-key';
+
+const secret = 's3cret'; // a string, bytes or an HMAC CryptoKey; keep it on the server
+const key = await signKey(new Uint8Array([0, 0, 1, 42]), secret);
+// => '222BA-22222-22BCC-8255N-DK73S'
+
+await verifyKey(key, secret); // => Uint8Array [0, 0, 1, 42]
+await verifyKey(key, 'another secret'); // throws Base32KeyError, code 'INVALID_SIGNATURE'
+```
+
+- `tagBytes` sets the tag length, from 4 to 32 bytes (default 5, which is 40 bits: one guess in about a trillion succeeds). Pass the same value to `verifyKey`.
+- Typos are still caught first, by the check digits, with the usual `invalidGroups`.
+- Signed keys are grouped and use the `withLength` layout from [Bytes](#bytes). `case`, `prefix` and the decode options such as `normalize` work as usual.
+- A signature proves who made a key, not that it is unused: keep track of redeemed keys on the server.
+
 ### Command line
 
 ```sh
@@ -269,15 +289,25 @@ The package ships [`test-vectors.json`](test-vectors.json) with valid keys in ev
 import vectors from 'base32-key/test-vectors.json' with { type: 'json' };
 ```
 
+### Other languages
+
+The [python](python/) and [go](go/) folders hold ports of the core format (hex and bytes encoding, decoding with per-group errors). They pass the same [test-vectors.json](test-vectors.json), so a key made in one language decodes in the others.
+
 ## Specification
 
 [SPEC.md](SPEC.md) describes the encoding, the alphabets, the check digit and the design choices behind them.
 
+## Upgrading to 3.0
+
+- Node.js 22 or later is required.
+- The positional boolean arguments are removed. Replace `fromHexString(hex, false, true, false)` with `fromHexString(hex, { grouped: false, checked: true, case: 'lower' })`, and the same for `toHexString`. Passing booleans now throws a `TypeError` that says so.
+- Nothing else changed: keys made by 2.x decode the same way.
+
 ## Upgrading to 2.0
 
-- Node.js 20 or later is required.
+- Node.js 22 or later is required.
 - The package is built to `dist/` with an `exports` map. Import from `base32-key` only; deep imports such as `base32-key/build/main/...` no longer work.
-- The API is unchanged from 1.1. The positional boolean arguments are still accepted but deprecated.
+- The API is unchanged from 1.1. The positional boolean arguments were deprecated (and removed in 3.0).
 
 ## Contributing
 

@@ -30,7 +30,7 @@ export default defineConfig([
   {
     entry: { cli: 'src/cli/main.ts' },
     format: ['esm'],
-    target: 'node20',
+    target: 'node22',
     platform: 'node',
   },
 ]);

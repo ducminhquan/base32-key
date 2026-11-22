@@ -88,36 +88,30 @@ function resolvePrefix(value: unknown) {
   return value;
 }
 
+const POSITIONAL_REMOVED =
+  'Positional boolean arguments were removed in base32-key 3.0: pass an options object, e.g. { grouped: false, checked: true, case: "lower" }';
+
 /**
- * Reads either an options object or the legacy positional booleans.
- * `decoding` allows the decode-only options (`case: 'auto'`, `groups`).
+ * Reads an options object. `decoding` allows the decode-only options
+ * (`case: 'auto'`, `groups`).
  */
 export function resolveOptions(
-  args: readonly unknown[],
+  value: unknown,
   normalizeByDefault = false,
   decoding = false
 ): ResolvedOptions {
-  const [first, checked, upperCase] = args;
-  if (typeof first === 'object' && first !== null) {
-    const options = first as DecodeOptions;
-    const grouped = options.grouped !== false;
-    return {
-      grouped,
-      checked: options.checked !== false,
-      ...resolveCase(options.case, decoding),
-      normalize:
-        options.normalize === undefined
-          ? normalizeByDefault
-          : options.normalize,
-      groups: resolveGroups(options.groups, grouped, decoding),
-      prefix: resolvePrefix(options.prefix),
-    };
+  if (value !== undefined && (typeof value !== 'object' || value === null)) {
+    throw new TypeError(POSITIONAL_REMOVED);
   }
+  const options = (value ?? {}) as DecodeOptions;
+  const grouped = options.grouped !== false;
   return {
-    grouped: first !== false,
-    checked: checked !== false,
-    upperCase: upperCase !== false,
-    autoCase: false,
-    normalize: normalizeByDefault,
+    grouped,
+    checked: options.checked !== false,
+    ...resolveCase(options.case, decoding),
+    normalize:
+      options.normalize === undefined ? normalizeByDefault : options.normalize,
+    groups: resolveGroups(options.groups, grouped, decoding),
+    prefix: resolvePrefix(options.prefix),
   };
 }

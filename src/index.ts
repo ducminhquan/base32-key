@@ -9,6 +9,8 @@ export type { GenerateOptions } from './lib/generate';
 export type { DecodeOptions, EncodeOptions, KeyCase } from './lib/options';
 export { fromBytes, MAX_LENGTH_PREFIXED_BYTES, toBytes } from './lib/bytes';
 export type { BytesDecodeOptions, BytesEncodeOptions } from './lib/bytes';
+export { signKey, verifyKey } from './lib/sign';
+export type { SignOptions, SigningSecret, VerifyOptions } from './lib/sign';
 export { suggest } from './lib/suggest';
 export type { SuggestOptions } from './lib/suggest';
 export { keySchema } from './lib/schema';

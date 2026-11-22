@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "base32-key"
+version = "1.0.0"
+description = "Human-friendly Base32 keys with a check digit per group"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+classifiers = ["Programming Language :: Python :: 3"]
+
+[project.urls]
+Homepage = "https://github.com/ducminhquan/base32-key"
+
+[tool.setuptools.packages.find]
+where = ["src"]

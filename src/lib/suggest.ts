@@ -102,7 +102,7 @@ export function suggest(
   if (!Number.isInteger(limit) || limit < 1) {
     throw new RangeError(`limit must be a positive integer, got ${limit}`);
   }
-  const resolved = resolveOptions([decodeOptions], true, true);
+  const resolved = resolveOptions(decodeOptions, true, true);
   const cases = resolved.autoCase
     ? (['upper', 'lower'] as const)
     : ([resolved.upperCase ? 'upper' : 'lower'] as const);

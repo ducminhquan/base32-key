@@ -105,7 +105,7 @@ function numberToBase32(input: readonly number[]) {
  * ```
  *
  * @param base16String - Input hex string (an optional `0x` prefix is allowed).
- * @param options - Encoding options, or the legacy `grouped` boolean.
+ * @param options - Encoding options.
  * @returns Base32 key.
  * @throws {@link Base32KeyError} with code `INVALID_HEX` if `base16String` is
  * empty or contains non-hex characters.
@@ -114,25 +114,8 @@ function numberToBase32(input: readonly number[]) {
 export function fromHexString(
   base16String: string,
   options?: EncodeOptions
-): string;
-/**
- * @deprecated Pass an options object instead of positional booleans.
- * @param base16String - Input hex string.
- * @param grouped - Split the key into groups.
- * @param checked - Add check digits.
- * @param upperCase - Use the uppercase alphabet.
- */
-export function fromHexString(
-  base16String: string,
-  grouped?: boolean,
-  checked?: boolean,
-  upperCase?: boolean
-): string;
-export function fromHexString(
-  base16String: string,
-  ...args: unknown[]
 ): string {
-  const { grouped, checked, upperCase, prefix } = resolveOptions(args);
+  const { grouped, checked, upperCase, prefix } = resolveOptions(options);
   const base16Numbers = parseHexString(base16String);
   const base32Numbers = numberToBase32(base16Numbers);
   return addPrefix(
