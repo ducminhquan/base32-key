@@ -1,5 +1,5 @@
 export { formatInput, toHexString, validate } from './lib/decode';
-export type { ValidationResult } from './lib/decode';
+export type { FormatOptions, ValidationResult } from './lib/decode';
 export { fromHexString } from './lib/encode';
 export { Base32KeyError } from './lib/errors';
 export type { Base32KeyErrorCode } from './lib/errors';

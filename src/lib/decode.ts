@@ -93,6 +93,12 @@ const MESSAGES: { readonly [code in Base32KeyErrorCode]?: string } = {
   CHECKSUM_MISMATCH: 'a check digit that does not match',
 };
 
+/** Options for {@link formatInput}. */
+export interface FormatOptions extends EncodeOptions {
+  /** Keep at most this many groups. Grouped keys only. */
+  readonly groups?: number;
+}
+
 /** Result of {@link validate}. */
 export interface ValidationResult {
   /** `true` when the whole key decodes and every check digit matches. */
@@ -103,9 +109,17 @@ export interface ValidationResult {
   readonly code?: Base32KeyErrorCode;
 }
 
-function analyze(keyString: string, options: ResolvedOptions) {
+interface Analysis {
+  readonly hex: string;
+  readonly invalidGroups: readonly number[];
+  readonly code?: Base32KeyErrorCode;
+  /** Set when `options.groups` is given and the key has another count. */
+  readonly groupCount?: { readonly expected: number; readonly actual: number };
+}
+
+function analyzeWith(keyString: string, options: ResolvedOptions): Analysis {
   const groups = splitKey(keyString, options);
-  const invalidGroups: number[] = [];
+  const invalid = new Set<number>();
   let code: Base32KeyErrorCode | undefined;
   let hex = '';
   groups.forEach((group, index) => {
@@ -113,11 +127,38 @@ function analyze(keyString: string, options: ResolvedOptions) {
     if (result.ok) {
       hex += result.hex;
     } else {
-      invalidGroups.push(index);
+      invalid.add(index);
       code = code || result.code;
     }
   });
-  return { hex, invalidGroups, code };
+  const expected = options.groups;
+  if (expected === undefined || groups.length === expected) {
+    return { hex, invalidGroups: [...invalid], code };
+  }
+  // Flag the missing groups, or the extra ones.
+  const from = Math.min(groups.length, expected);
+  const to = Math.max(groups.length, expected);
+  for (let i = from; i < to; ++i) {
+    invalid.add(i);
+  }
+  return {
+    hex,
+    invalidGroups: [...invalid].sort((a, b) => a - b),
+    code: code || 'INVALID_LENGTH',
+    groupCount: { expected, actual: groups.length },
+  };
+}
+
+function analyze(keyString: string, options: ResolvedOptions): Analysis {
+  const first = analyzeWith(keyString, options);
+  if (!options.autoCase || first.code === undefined) {
+    return first;
+  }
+  const other = analyzeWith(keyString, { ...options, upperCase: false });
+  return other.code === undefined ||
+    other.invalidGroups.length < first.invalidGroups.length
+    ? other
+    : first;
 }
 
 /**
@@ -131,7 +172,14 @@ export function decodeToPaddedHex(
   if (typeof keyString !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
-  const { hex, invalidGroups, code } = analyze(keyString, options);
+  const { hex, invalidGroups, code, groupCount } = analyze(keyString, options);
+  if (groupCount) {
+    throw new Base32KeyError(
+      'INVALID_LENGTH',
+      `Invalid key: expected ${groupCount.expected} groups, got ${groupCount.actual}`,
+      invalidGroups
+    );
+  }
   if (code !== undefined) {
     const where =
       invalidGroups.length === 1
@@ -198,7 +246,7 @@ export function toHexString(
   upperCase?: boolean
 ): string;
 export function toHexString(keyString: string, ...args: unknown[]): string {
-  return decodeKey(keyString, resolveOptions(args));
+  return decodeKey(keyString, resolveOptions(args, false, true));
 }
 
 // cspell: disable
@@ -222,7 +270,7 @@ export function validate(
   if (typeof keyString !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
-  const resolved = resolveOptions([options], true);
+  const resolved = resolveOptions([options], true, true);
   const { invalidGroups, code } = analyze(keyString, resolved);
   return code === undefined
     ? { valid: true, invalidGroups }
@@ -234,18 +282,25 @@ export function validate(
  * Format raw user input as a key: drops whitespace, applies the alphabet's
  * letter case and inserts hyphens between groups. Partial input is fine.
  * Characters outside the alphabet are kept so `validate` can flag them.
+ * With `groups`, input beyond that many groups is dropped, which suits an
+ * input field with a fixed key length.
  *
  * ### Example
  * ```js
  * formatInput('222et3zz')
  * // => '222ET-3ZZ'
+ * formatInput('222et3zzgn22', { groups: 2 })
+ * // => '222ET-3ZZGN'
  * ```
  */
 // cspell: enable
-export function formatInput(raw: string, options: EncodeOptions = {}): string {
+export function formatInput(raw: string, options: FormatOptions = {}): string {
   if (typeof raw !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
-  const resolved = resolveOptions([options], true);
-  return splitKey(raw, resolved).join(resolved.grouped ? '-' : '');
+  const resolved = resolveOptions([options], true, true);
+  const groups = splitKey(raw, resolved);
+  return groups
+    .slice(0, resolved.groups ?? groups.length)
+    .join(resolved.grouped ? '-' : '');
 }

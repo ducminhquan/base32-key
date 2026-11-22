@@ -116,7 +116,7 @@ export function toBytes(
   options: BytesDecodeOptions = {}
 ): Uint8Array {
   if (options.withLength) {
-    const resolved = resolveOptions([options]);
+    const resolved = resolveOptions([options], false, true);
     requireGrouped(resolved.grouped);
     const hex = decodeToPaddedHex(keyString, resolved);
     const length = parseInt(hex.substring(0, 5), 16);

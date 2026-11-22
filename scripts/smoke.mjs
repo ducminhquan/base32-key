@@ -23,6 +23,12 @@ for (const [name, lib] of Object.entries({ cjs, esm })) {
   assert.ok(new lib.Base32KeyError('INVALID_HEX', 'x') instanceof Error, name);
 }
 
+const vectors = require('base32-key/test-vectors.json');
+assert.equal(
+  cjs.fromHexString(vectors.valid[0].hex),
+  vectors.valid[0].upper.grouped
+);
+
 const cli = (...args) =>
   execFileSync(process.execPath, ['dist/cli.js', ...args], {
     encoding: 'utf8',
