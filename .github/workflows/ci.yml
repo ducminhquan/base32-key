@@ -24,23 +24,6 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  # The dev tools need Node 22, but the package supports Node 20: build with
-  # 22, then load the built package and run the CLI on 20.
-  node-20:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 20
-      - run: node scripts/smoke.mjs
-
   # <base32-key-input> in a real Chromium (form association, validity).
   browser:
     runs-on: ubuntu-latest
@@ -53,3 +36,29 @@ jobs:
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       - run: npm run test:browser
+
+  # Ports, checked against the shared test-vectors.json.
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.13'
+      - run: python -m unittest discover -s tests -v
+        working-directory: python
+        env:
+          PYTHONPATH: src
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go/go.mod
+          cache: false
+      - run: test -z "$(gofmt -l .)"
+        working-directory: go
+      - run: go vet ./... && go test -cover ./...
+        working-directory: go

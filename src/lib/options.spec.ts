@@ -4,25 +4,22 @@ import { fromHexString } from './encode';
 import { resolveOptions } from './options';
 import { testVectors } from './vectors';
 
-test('resolveOptions >> legacy positional defaults', () => {
-  expect(resolveOptions([])).toEqual({
+test('resolveOptions >> positional booleans were removed', () => {
+  expect(resolveOptions(undefined)).toMatchObject({
     grouped: true,
     checked: true,
     upperCase: true,
-    autoCase: false,
-    normalize: false,
   });
-  expect(resolveOptions([false, false, false], true)).toEqual({
-    grouped: false,
-    checked: false,
-    upperCase: false,
-    autoCase: false,
-    normalize: true,
-  });
+  for (const value of [false, true, null, 'lower']) {
+    expect(() => resolveOptions(value)).toThrow(/removed in base32-key 3\.0/);
+  }
+  expect(() =>
+    (fromHexString as (...args: unknown[]) => string)('ff', false, true, false)
+  ).toThrow(TypeError);
 });
 
 test('resolveOptions >> options object', () => {
-  expect(resolveOptions([{}])).toEqual({
+  expect(resolveOptions({})).toEqual({
     grouped: true,
     checked: true,
     upperCase: true,
@@ -30,11 +27,14 @@ test('resolveOptions >> options object', () => {
     normalize: false,
     groups: undefined,
   });
-  expect(resolveOptions([{}], true).normalize).toEqual(true);
+  expect(resolveOptions({}, true).normalize).toEqual(true);
   expect(
-    resolveOptions([
-      { grouped: false, checked: false, case: 'lower', normalize: true },
-    ])
+    resolveOptions({
+      grouped: false,
+      checked: false,
+      case: 'lower',
+      normalize: true,
+    })
   ).toEqual({
     grouped: false,
     checked: false,
@@ -44,13 +44,13 @@ test('resolveOptions >> options object', () => {
     groups: undefined,
   });
   expect(
-    resolveOptions([{ case: 'upper', normalize: false }], true).normalize
+    resolveOptions({ case: 'upper', normalize: false }, true).normalize
   ).toBe(false);
-  expect(resolveOptions([{ case: 'upper' }]).upperCase).toBe(true);
+  expect(resolveOptions({ case: 'upper' }).upperCase).toBe(true);
 });
 
 test('resolveOptions >> rejects unknown case', () => {
-  expect(() => resolveOptions([{ case: 'title' }])).toThrow(TypeError);
+  expect(() => resolveOptions({ case: 'title' })).toThrow(TypeError);
 });
 
 test('fromHexString >> options object matches positional form', () => {
@@ -73,17 +73,17 @@ test('fromHexString >> options object matches positional form', () => {
 });
 
 test('resolveOptions >> decode-only options', () => {
-  expect(resolveOptions([{ case: 'auto' }], false, true)).toMatchObject({
+  expect(resolveOptions({ case: 'auto' }, false, true)).toMatchObject({
     upperCase: true,
     autoCase: true,
   });
-  expect(() => resolveOptions([{ case: 'auto' }])).toThrow(TypeError);
-  expect(resolveOptions([{ groups: 4 }], false, true).groups).toBe(4);
-  expect(resolveOptions([{ groups: 4 }]).groups).toBeUndefined();
+  expect(() => resolveOptions({ case: 'auto' })).toThrow(TypeError);
+  expect(resolveOptions({ groups: 4 }, false, true).groups).toBe(4);
+  expect(resolveOptions({ groups: 4 }).groups).toBeUndefined();
   for (const groups of [0, -1, 1.5, '4']) {
-    expect(() => resolveOptions([{ groups }], false, true)).toThrow(RangeError);
+    expect(() => resolveOptions({ groups }, false, true)).toThrow(RangeError);
   }
   expect(() =>
-    resolveOptions([{ groups: 2, grouped: false }], false, true)
+    resolveOptions({ groups: 2, grouped: false }, false, true)
   ).toThrow(TypeError);
 });

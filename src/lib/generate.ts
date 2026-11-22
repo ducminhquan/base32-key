@@ -69,7 +69,7 @@ export function generateKey(options: GenerateOptions = {}): string {
       `maxAttempts must be a positive integer, got ${maxAttempts}`
     );
   }
-  const { grouped, checked, upperCase, prefix } = resolveOptions([options]);
+  const { grouped, checked, upperCase, prefix } = resolveOptions(options);
   const digitCount = groups * 4;
   for (let attempt = 0; attempt < maxAttempts; ++attempt) {
     const bytes = random(digitCount);

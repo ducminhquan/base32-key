@@ -257,28 +257,17 @@ function decodeKey(keyString: unknown, options: ResolvedOptions) {
  * ```
  *
  * @param keyString - Input Base32 key.
- * @param options - Decoding options, or the legacy `grouped` boolean.
+ * @param options - Decoding options.
  * @returns Hex string without leading zeroes.
  * @throws {@link Base32KeyError} if the key is empty, malformed or fails a
  * checksum; its `invalidGroups` lists the groups at fault.
  */
 // cspell: enable
-export function toHexString(keyString: string, options?: DecodeOptions): string;
-/**
- * @deprecated Pass an options object instead of positional booleans.
- * @param keyString - Input Base32 key.
- * @param grouped - The key is split into groups.
- * @param checked - The key includes check digits.
- * @param upperCase - The key uses the uppercase alphabet.
- */
 export function toHexString(
   keyString: string,
-  grouped?: boolean,
-  checked?: boolean,
-  upperCase?: boolean
-): string;
-export function toHexString(keyString: string, ...args: unknown[]): string {
-  return decodeKey(keyString, resolveOptions(args, false, true));
+  options?: DecodeOptions
+): string {
+  return decodeKey(keyString, resolveOptions(options, false, true));
 }
 
 // cspell: disable
@@ -302,7 +291,7 @@ export function validate(
   if (typeof keyString !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
-  const resolved = resolveOptions([options], true, true);
+  const resolved = resolveOptions(options, true, true);
   const { invalidGroups, code } = analyze(keyString, resolved);
   return code === undefined
     ? { valid: true, invalidGroups }
@@ -330,7 +319,7 @@ export function formatInput(raw: string, options: FormatOptions = {}): string {
   if (typeof raw !== 'string') {
     throw new TypeError('Invalid: expected a string');
   }
-  const resolved = resolveOptions([options], true, true);
+  const resolved = resolveOptions(options, true, true);
   const { prefix } = resolved;
   let rest = raw;
   if (prefix) {

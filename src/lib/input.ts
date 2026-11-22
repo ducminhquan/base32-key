@@ -67,7 +67,7 @@ export function keyInputState(
   value: string,
   options: FormatOptions = {}
 ): KeyInputState {
-  const resolved = resolveOptions([options], true, true);
+  const resolved = resolveOptions(options, true, true);
   const validation = validate(value, options);
   const prefix = resolved.prefix ? `${resolved.prefix}-` : '';
   const body = value.startsWith(prefix) ? value.slice(prefix.length) : '';
@@ -120,7 +120,7 @@ export function attachKeyInput(
   options: KeyInputOptions = {}
 ): () => void {
   const { onChange, ...formatOptions } = options;
-  const { prefix } = resolveOptions([formatOptions], true, true);
+  const { prefix } = resolveOptions(formatOptions, true, true);
   const update = () => {
     const raw = input.value;
     const caret = input.selectionStart ?? raw.length;

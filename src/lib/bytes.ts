@@ -84,7 +84,7 @@ export function fromBytes(
     }
     return fromHexString(hex, options);
   }
-  requireGrouped(resolveOptions([options]).grouped);
+  requireGrouped(resolveOptions(options).grouped);
   if (bytes.length > MAX_LENGTH_PREFIXED_BYTES) {
     throw new RangeError(
       `withLength supports at most ${MAX_LENGTH_PREFIXED_BYTES} bytes`
@@ -116,7 +116,7 @@ export function toBytes(
   options: BytesDecodeOptions = {}
 ): Uint8Array {
   if (options.withLength) {
-    const resolved = resolveOptions([options], false, true);
+    const resolved = resolveOptions(options, false, true);
     requireGrouped(resolved.grouped);
     const hex = decodeToPaddedHex(keyString, resolved);
     const length = parseInt(hex.substring(0, 5), 16);

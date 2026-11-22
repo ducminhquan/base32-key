@@ -7,3 +7,5 @@ coverage
 *.log
 yarn.lock
 *.tgz
+__pycache__/
+*.egg-info/

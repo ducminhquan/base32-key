@@ -4,7 +4,7 @@ Thanks for helping. Bug reports, ideas and pull requests are all welcome.
 
 ## Set up
 
-You need Node.js 22 or later for the development tools. The published package supports Node.js 20 or later.
+You need Node.js 22 or later for the development tools. The published package supports Node.js 22 or later too.
 
 ```sh
 npm install

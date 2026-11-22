@@ -6,6 +6,8 @@
  * - `INVALID_LENGTH`: the key, or one of its groups, has the wrong length.
  * - `CHECKSUM_MISMATCH`: a group's check digit does not match its data.
  * - `INVALID_PREFIX`: the key does not start with the expected `prefix`.
+ * - `INVALID_SIGNATURE`: `verifyKey` found a well-formed key whose
+ *   signature does not match the secret.
  * - `GENERATION_FAILED`: `generateKey` found no key accepted by the filter.
  * - `NO_RANDOM_SOURCE`: no secure random source is available.
  */
@@ -15,6 +17,7 @@ export type Base32KeyErrorCode =
   | 'INVALID_LENGTH'
   | 'CHECKSUM_MISMATCH'
   | 'INVALID_PREFIX'
+  | 'INVALID_SIGNATURE'
   | 'GENERATION_FAILED'
   | 'NO_RANDOM_SOURCE';
 

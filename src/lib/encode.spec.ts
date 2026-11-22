@@ -8,20 +8,26 @@ import { testVectors } from './vectors';
 test('fromHexString', () => {
   testVectors.map((v) => {
     expect(fromHexString(v.hex)).toBe(v.ucg);
-    expect(fromHexString(v.hex, true, true, true)).toBe(v.ucg);
-    expect(fromHexString(v.hex, true, true, false)).toBe(v.lcg);
-    expect(fromHexString(v.hex, false, true, true)).toBe(v.uc);
-    expect(fromHexString(v.hex, false, true, false)).toBe(v.lc);
+    expect(fromHexString(v.hex, {})).toBe(v.ucg);
+    expect(fromHexString(v.hex, { case: 'lower' })).toBe(v.lcg);
+    expect(fromHexString(v.hex, { grouped: false })).toBe(v.uc);
+    expect(fromHexString(v.hex, { grouped: false, case: 'lower' })).toBe(v.lc);
 
-    expect(fromHexString(v.hex, true, false, false)).toBe(v.lcgu);
-    expect(fromHexString(v.hex, false, false, true)).toBe(v.ucu);
-    expect(fromHexString(v.hex, false, false, false)).toBe(v.lcu);
+    expect(fromHexString(v.hex, { checked: false, case: 'lower' })).toBe(
+      v.lcgu
+    );
+    expect(fromHexString(v.hex, { grouped: false, checked: false })).toBe(
+      v.ucu
+    );
+    expect(
+      fromHexString(v.hex, { grouped: false, checked: false, case: 'lower' })
+    ).toBe(v.lcu);
   });
 });
 
 test('fromHexString >> uppercase vectors without checksum', () => {
   testVectors.map((v) => {
-    expect(fromHexString(v.hex, true, false, true)).toBe(v.ucgu);
+    expect(fromHexString(v.hex, { checked: false })).toBe(v.ucgu);
   });
 });
 
