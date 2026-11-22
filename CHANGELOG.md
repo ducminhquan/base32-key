@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.0.0](https://github.com/ducminhquan/base32-key/compare/v2.2.0...v3.0.0) (2026-11-22)
+
+### ⚠ BREAKING CHANGES
+
+* Node.js 22 or later is required, and the positional
+  boolean arguments of fromHexString and toHexString are removed. Pass an
+  options object instead, e.g. { grouped: false, checked: true, case: 'lower' }.
+
+### Features
+
+* signed keys, Python and Go ports; drop positional booleans and Node 20 ([#16](https://github.com/ducminhquan/base32-key/issues/16)) ([0fc2262](https://github.com/ducminhquan/base32-key/commit/0fc2262f154e94a92ff590cd34dbe0d989baab94))
+
 ## [2.2.0](https://github.com/ducminhquan/base32-key/compare/v2.1.0...v2.2.0) (2026-11-22)
 
 ### Features
