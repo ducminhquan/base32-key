@@ -19,6 +19,7 @@
     "execa",
     "exponentiate",
     "globby",
+    "HMAC",
     "installable",
     "lcgu",
     "libauth",

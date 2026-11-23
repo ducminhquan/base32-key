@@ -197,6 +197,47 @@ Lowercase ungrouped: `s3995e8j595zwchu7knmcbwc3pj7megrnuzfmkbdv`
 
 <!-- cspell:enable -->
 
+## Extensions
+
+The encoding above is all a decoder needs. The layouts below are built on top of it. The npm package and the Python and Go ports implement them in the same way, and [test-vectors.json](test-vectors.json) checks each one.
+
+### Length-prefixed bytes (`withLength`)
+
+A byte string of `n` bytes, with `0 ≤ n ≤ 0xFFFFF`, is encoded as follows:
+
+1. Write `n` as 5 hex digits. These form the first group.
+2. Write the bytes as hex (2 digits per byte), left-padded with `0` to a multiple of 5 digits.
+3. Encode the concatenation as a grouped key.
+
+The first group therefore stores the length. A decoder reads it, checks that the rest has exactly `ceil(2n / 5)` groups and that the padding digits are `0`, and returns the last `2n` hex digits. A key that was cut short, or that has extra groups, is rejected with `INVALID_LENGTH`. Grouped keys are required.
+
+Example: the bytes `00 ff` encode as `2224C-229ZN`.
+
+### Prefixes
+
+A prefix is one or more ASCII letters and digits, written before the key with a hyphen: `LC-222ET-3ZZGN`. The prefix carries no data and has no check digit. A decoder that expects a prefix rejects a key without it with `INVALID_PREFIX`. When normalizing, the decoder matches the prefix case-insensitively and allows spaces and hyphens around it.
+
+### Normalized input
+
+To accept keys as people type them, a decoder may normalize the input first:
+
+1. Remove every space and hyphen.
+2. Fold the case to the alphabet in use.
+3. Split the result into groups of 5 characters (4 without check digits), or keep it as one group for ungrouped keys.
+
+The groups are then decoded as usual, so the error for each group still points at the right place.
+
+### Signed keys
+
+A signed key proves that it was made by someone who knows a secret. It carries a payload of `n` bytes and a tag of `t` bytes, with `4 ≤ t ≤ 32` and a default of 5:
+
+1. `tag = HMAC-SHA256(secret, payload)`, truncated to its first `t` bytes.
+2. The key is the length-prefixed encoding (see above) of `payload || tag`. A prefix and the lowercase alphabet may be used as usual.
+
+To verify a key, decode it as length-prefixed bytes. Typos are caught at this step by the check digits, and they are reported for the exact group. Then split off the last `t` bytes and compare them with the recomputed tag in constant time. A mismatch is `INVALID_SIGNATURE`. The verifier must use the same `t` as the signer, because the key does not record it.
+
+With the default `t = 5`, a forger has one chance in 2^40 (about 10^12) per guess. A signature shows who made a key. It does not show that the key is unused, so a service that redeems keys still has to record which keys it has redeemed.
+
 ## Ideas not pursued
 
 ### Wider checksums
