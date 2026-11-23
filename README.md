@@ -291,7 +291,7 @@ import vectors from 'base32-key/test-vectors.json' with { type: 'json' };
 
 ### Other languages
 
-The [python](python/) and [go](go/) folders hold ports of the core format (hex and bytes encoding, decoding with per-group errors). They pass the same [test-vectors.json](test-vectors.json), so a key made in one language decodes in the others.
+The [python](python/) and [go](go/) folders hold ports for backends: hex and bytes encoding, decoding with per-group errors, `normalize`, prefixes, random keys and signed keys. They pass the same [test-vectors.json](test-vectors.json), so a key made in one language decodes in the others.
 
     pip install base32-key                              # Python 3.9+
     go get github.com/ducminhquan/base32-key/go@latest  # Go 1.22+
