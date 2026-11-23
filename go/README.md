@@ -1,6 +1,10 @@
 # base32-key for Go
 
-A Go port of the core of [base32-key](https://github.com/ducminhquan/base32-key): the same alphabets, the same check digit per group and the same keys, tested against the shared [test-vectors.json](../test-vectors.json).
+A Go port of the core of [base32-key](https://github.com/ducminhquan/base32-key): the same alphabets, the same check digit per group and the same keys, tested against the shared [test-vectors.json](https://github.com/ducminhquan/base32-key/blob/master/test-vectors.json).
+
+```sh
+go get github.com/ducminhquan/base32-key/go@latest
+```
 
 ```go
 import base32key "github.com/ducminhquan/base32-key/go"

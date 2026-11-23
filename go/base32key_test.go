@@ -29,6 +29,10 @@ type vectors struct {
 
 func load(t *testing.T) vectors {
 	raw, err := os.ReadFile("../test-vectors.json")
+	if errors.Is(err, os.ErrNotExist) {
+		// The vectors live at the repository root, outside the module zip.
+		t.Skip("../test-vectors.json not found; run the tests from a clone")
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

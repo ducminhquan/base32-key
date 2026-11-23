@@ -40,3 +40,30 @@ To force a specific bump, use `npm run bump -- --release-as minor` (or `major`, 
 - If a GitHub release for the tag already exists, it is left untouched.
 - To stage an existing tag again (for example after a rejected version or a trusted publisher fix), run the workflow and enter the tag.
 - Staged publishing needs npm 11.15.0 or later and a GitHub-hosted runner. The publish job uses Node 24 and upgrades npm if it is older.
+
+## Python and Go ports
+
+[`.github/workflows/release-ports.yml`](workflows/release-ports.yml) releases the ports in `python/` and `go/`. Their versions are separate from the npm package.
+
+### One-time setup on PyPI
+
+1. Sign in to [pypi.org](https://pypi.org) (turn on two-factor authentication if it is not on yet).
+2. Open [Your projects → Publishing](https://pypi.org/manage/account/publishing/) and fill in **Add a new pending publisher**, tab **GitHub**:
+   - PyPI Project Name: `base32-key`
+   - Owner: `ducminhquan`
+   - Repository name: `base32-key`
+   - Workflow name: `release-ports.yml`
+   - Environment name: `pypi`
+3. Click **Add**. The project `base32-key` is created on the first upload. A pending publisher does not reserve the name, so run the first release soon.
+4. Recommended, so that every upload waits for you like a staged npm package: in GitHub, _Settings → Environments → pypi_ (it appears after the first run, or create it with **New environment**), tick **Required reviewers** and add yourself. You may also set **Deployment branches and tags** to `master` only.
+
+Go needs no setup: a Go module is published by pushing a tag, and the Go module proxy picks it up.
+
+### Cutting a release
+
+1. Bump the version: `version` in `python/pyproject.toml` (with a line in `python/CHANGELOG.md`), and/or `Version` in `go/version.go` (with a line in `go/CHANGELOG.md`). Merge to `master`.
+2. _Actions → Release ports → Run workflow_, branch `master`, target `both`, `python` or `go`.
+3. Python: if the `pypi` environment has required reviewers, approve the **python-publish** job on the run page. The workflow tags `python/vX.Y.Z` and uploads to PyPI with attestations. A version that is already on PyPI is skipped.
+4. Go: the workflow tags `go/vX.Y.Z` and asks proxy.golang.org to fetch it. It shows on [pkg.go.dev](https://pkg.go.dev/github.com/ducminhquan/base32-key/go) within a few minutes. Go module versions are permanent: a pushed tag cannot be replaced, only followed by a new version.
+
+The Go module stays on major version 1. A breaking change would need the module path `github.com/ducminhquan/base32-key/go/v2`.

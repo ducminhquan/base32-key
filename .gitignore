@@ -9,3 +9,5 @@ yarn.lock
 *.tgz
 __pycache__/
 *.egg-info/
+python/dist/
+python/build/
