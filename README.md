@@ -8,7 +8,9 @@ Human-friendly keys such as `222ET-3ZZGN` for product keys, vouchers and codes p
 [![GitHub release](https://img.shields.io/github/release/ducminhquan/base32-key.svg)](https://github.com/ducminhquan/base32-key/releases/)
 [![GitHub tag](https://img.shields.io/github/tag/ducminhquan/base32-key.svg)](https://GitHub.com/ducminhquan/base32-key/tags/)
 
-[![NPM](https://nodei.co/npm/base32-key.png?downloads=true&stars=true)](https://www.npmjs.com/package/base32-key)
+[![npm](https://img.shields.io/npm/v/base32-key.svg)](https://www.npmjs.com/package/base32-key)
+[![PyPI](https://img.shields.io/pypi/v/base32-key.svg)](https://pypi.org/project/base32-key/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ducminhquan/base32-key/go.svg)](https://pkg.go.dev/github.com/ducminhquan/base32-key/go)
 
 **[Try it in the browser](https://ducminhquan.github.io/base32-key/)** · [API reference](https://ducminhquan.github.io/base32-key/api/)
 

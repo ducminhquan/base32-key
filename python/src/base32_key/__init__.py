@@ -130,8 +130,9 @@ def from_hex(hex_string: str, *, grouped: bool = True, checked: bool = True,
     return _add_prefix(_encode_digits(digits, alphabet, grouped, checked), prefix)
 
 
-def _decode_group(group: str, alphabet: str, grouped: bool, checked: bool):
-    digits = []
+def _decode_group(group: str, alphabet: str, grouped: bool,
+                  checked: bool) -> tuple[str | None, str | None]:
+    digits: list[int] = []
     for c in group:
         d = alphabet.find(c)
         if d < 0:
@@ -171,7 +172,8 @@ def _split(key: str, grouped: bool, checked: bool, case: str, normalize: bool) -
 
 
 def _analyze(key: str, grouped: bool, checked: bool, case: str,
-             normalize: bool = False, prefix: str | None = None):
+             normalize: bool = False,
+             prefix: str | None = None) -> tuple[str, list[int], str | None]:
     if not isinstance(key, str):
         raise TypeError("Invalid: expected a string")
     alphabet = _alphabet(case)
@@ -180,10 +182,12 @@ def _analyze(key: str, grouped: bool, checked: bool, case: str,
     if body is None:
         return "", [], "INVALID_PREFIX"
     groups = _split(body, grouped, checked, case, normalize)
-    hex_out, invalid, code = "", [], None
+    hex_out = ""
+    invalid: list[int] = []
+    code: str | None = None
     for index, group in enumerate(groups):
         h, err = _decode_group(group, alphabet, grouped, checked)
-        if err:
+        if err is not None or h is None:
             invalid.append(index)
             code = code or err
         else:

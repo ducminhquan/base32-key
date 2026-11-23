@@ -7,6 +7,11 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # TypeScript 7 (the native compiler) is not supported yet by
+      # typescript-eslint, tsup's declaration build or typedoc.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -267,6 +267,48 @@
       </section>
 
       <section>
+        <h2>Signed keys</h2>
+        <p class="note">
+          <code>signKey</code> adds an HMAC-SHA256 tag, so only someone with the
+          secret can make a valid key. The secret stays on your server in real
+          use; here everything runs in your browser.
+        </p>
+        <div class="row">
+          <label for="sign-secret" style="margin: 0">Secret</label>
+          <input
+            id="sign-secret"
+            autocomplete="off"
+            spellcheck="false"
+            value="s3cret"
+            style="flex: 1"
+          />
+        </div>
+        <div class="row">
+          <label for="sign-payload" style="margin: 0">Payload (hex)</label>
+          <input
+            id="sign-payload"
+            autocomplete="off"
+            spellcheck="false"
+            value="00002a"
+            style="flex: 1"
+          />
+          <button id="sign" type="button">Sign</button>
+        </div>
+        <output id="sign-out"></output>
+        <div class="row">
+          <label for="verify-key" style="margin: 0">Key to verify</label>
+          <input
+            id="verify-key"
+            autocomplete="off"
+            spellcheck="false"
+            style="flex: 1"
+          />
+          <button id="verify" type="button">Verify</button>
+        </div>
+        <div class="status" id="verify-status" role="status"></div>
+      </section>
+
+      <section>
         <h2>Generate</h2>
         <div class="row">
           <label for="groups" style="margin: 0">Groups</label>
@@ -290,7 +332,9 @@
         defineKeyInput,
         fromHexString,
         generateKey,
+        signKey,
         toHexString,
+        verifyKey,
       } from './base32-key.min.js';
 
       defineKeyInput();
@@ -383,6 +427,52 @@
         }
       }
 
+      const hexToBytes = (hex) => {
+        const clean = hex.trim().replace(/^0x/i, '');
+        if (!/^([0-9a-f]{2})*$/i.test(clean)) {
+          throw new Error('Enter an even number of hex digits');
+        }
+        return new Uint8Array(
+          (clean.match(/../g) ?? []).map((pair) => parseInt(pair, 16))
+        );
+      };
+      const bytesToHex = (bytes) =>
+        Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+
+      async function sign() {
+        try {
+          const key = await signKey(
+            hexToBytes($('sign-payload').value),
+            $('sign-secret').value,
+            { case: options().case }
+          );
+          $('sign-out').textContent = key;
+          $('verify-key').value = key;
+          await verify();
+        } catch (error) {
+          $('sign-out').textContent = error.message;
+        }
+      }
+
+      async function verify() {
+        const status = $('verify-status');
+        try {
+          const payload = await verifyKey(
+            $('verify-key').value,
+            $('sign-secret').value,
+            { case: 'auto', normalize: true }
+          );
+          status.className = 'status ok';
+          status.textContent = `Valid signature. Payload: ${bytesToHex(payload) || '(empty)'}`;
+        } catch (error) {
+          status.className = 'status bad';
+          status.textContent =
+            error.code === 'INVALID_SIGNATURE'
+              ? 'Not signed with this secret.'
+              : error.message;
+        }
+      }
+
       const refresh = () => {
         checkKey();
         encodeHex();
@@ -395,11 +485,14 @@
       });
       $('hex').addEventListener('input', encodeHex);
       $('generate').addEventListener('click', generate);
+      $('sign').addEventListener('click', sign);
+      $('verify').addEventListener('click', verify);
       for (const id of ['lower', 'grouped', 'checked']) {
         $(id).addEventListener('change', refresh);
       }
       refresh();
       generate();
+      sign();
     </script>
   </body>
 </html>
