@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -41,6 +42,14 @@ type Options struct {
 	// Normalize (decoding only) ignores spaces and hyphens and folds the
 	// case, so "lc 222et 3zzgn" reads as "LC-222ET-3ZZGN".
 	Normalize bool
+	// AutoCase (decoding only) tries the uppercase alphabet, then the
+	// lowercase one, and keeps the one whose check digits match. Lower is
+	// ignored. Like case: 'auto' in the npm package.
+	AutoCase bool
+	// Groups (decoding only, grouped keys) is the exact number of groups a
+	// key must have; missing or extra groups give INVALID_LENGTH. Zero
+	// means any number. FormatInput keeps at most this many groups.
+	Groups int
 }
 
 // DefaultOptions are grouped, checked, uppercase keys.
@@ -86,6 +95,16 @@ var prefixPattern = regexp.MustCompile(`^[A-Za-z0-9]*$`)
 func (o Options) checkPrefix() error {
 	if !prefixPattern.MatchString(o.Prefix) {
 		return fmt.Errorf("prefix must contain only letters and digits, got %q", o.Prefix)
+	}
+	return nil
+}
+
+func (o Options) checkGroups() error {
+	if o.Groups < 0 {
+		return fmt.Errorf("groups must not be negative, got %d", o.Groups)
+	}
+	if o.Groups > 0 && !o.Grouped {
+		return errors.New("the Groups option requires grouped keys")
 	}
 	return nil
 }
@@ -249,15 +268,17 @@ type Result struct {
 	Code          string
 }
 
-func analyze(key string, o Options) (string, Result) {
+func analyzeWith(key string, o Options) (string, Result, [2]int) {
 	var b strings.Builder
 	res := Result{InvalidGroups: []int{}}
+	var count [2]int
 	body, ok := stripPrefix(key, o)
 	if !ok {
 		res.Code = InvalidPrefix
-		return "", res
+		return "", res, count
 	}
-	for i, group := range splitKey(body, o) {
+	groups := splitKey(body, o)
+	for i, group := range groups {
 		h, code := decodeGroup(group, o)
 		if code != "" {
 			res.InvalidGroups = append(res.InvalidGroups, i)
@@ -268,13 +289,48 @@ func analyze(key string, o Options) (string, Result) {
 		}
 		b.WriteString(h)
 	}
+	if want := o.Groups; want > 0 && o.Grouped && len(groups) != want {
+		// Flag the missing groups, or the extra ones.
+		lo, hi := len(groups), want
+		if lo > hi {
+			lo, hi = hi, lo
+		}
+		for i := lo; i < hi; i++ {
+			res.InvalidGroups = append(res.InvalidGroups, i)
+		}
+		sort.Ints(res.InvalidGroups)
+		if res.Code == "" {
+			res.Code = InvalidLength
+		}
+		count = [2]int{want, len(groups)}
+	}
 	res.Valid = res.Code == ""
-	return b.String(), res
+	return b.String(), res, count
 }
 
-// Validate checks a key without returning an error.
+// analyze decodes a key; count is {expected, actual} when o.Groups does
+// not match the number of groups.
+func analyze(key string, o Options) (string, Result, [2]int) {
+	if !o.AutoCase {
+		return analyzeWith(key, o)
+	}
+	o.Lower = false
+	h, res, count := analyzeWith(key, o)
+	if res.Valid {
+		return h, res, count
+	}
+	o.Lower = true
+	h2, res2, count2 := analyzeWith(key, o)
+	if res2.Valid || len(res2.InvalidGroups) < len(res.InvalidGroups) {
+		return h2, res2, count2
+	}
+	return h, res, count
+}
+
+// Validate checks a key without returning an error. Groups is ignored when
+// it is negative or the key is not grouped (ToHex reports those as errors).
 func Validate(key string, o Options) Result {
-	_, res := analyze(key, o)
+	_, res, _ := analyze(key, o)
 	return res
 }
 
@@ -288,12 +344,22 @@ func paddedHex(key string, o Options) (string, error) {
 	if err := o.checkPrefix(); err != nil {
 		return "", err
 	}
-	h, res := analyze(key, o)
+	if err := o.checkGroups(); err != nil {
+		return "", err
+	}
+	h, res, count := analyze(key, o)
 	if res.Valid {
 		return h, nil
 	}
 	if res.Code == InvalidPrefix {
 		return "", &Error{Code: InvalidPrefix, Message: fmt.Sprintf("Invalid key: expected the prefix %q", o.Prefix), InvalidGroups: []int{}}
+	}
+	if count[0] > 0 {
+		return "", &Error{
+			Code:          InvalidLength,
+			Message:       fmt.Sprintf("Invalid key: expected %d groups, got %d", count[0], count[1]),
+			InvalidGroups: res.InvalidGroups,
+		}
 	}
 	where := fmt.Sprintf("group %d has", res.InvalidGroups[0]+1)
 	if len(res.InvalidGroups) > 1 {
@@ -377,4 +443,29 @@ func ToBytes(key string, withLength bool, o Options) ([]byte, error) {
 		}
 	}
 	return hex.DecodeString(data[expected-n*2:])
+}
+
+// ToBytesLength decodes a key made by FromBytes without withLength and
+// left-pads the result with zero bytes to length bytes, like the npm
+// package's length option. A value that needs more bytes gives an *Error
+// with code INVALID_LENGTH.
+func ToBytesLength(key string, length int, o Options) ([]byte, error) {
+	if length < 0 {
+		return nil, fmt.Errorf("length must not be negative, got %d", length)
+	}
+	data, err := ToBytes(key, false, o)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 1 && data[0] == 0 {
+		data = nil
+	}
+	if len(data) > length {
+		return nil, &Error{
+			Code:          InvalidLength,
+			Message:       fmt.Sprintf("Invalid key: the value needs %d bytes, more than %d", len(data), length),
+			InvalidGroups: []int{},
+		}
+	}
+	return append(make([]byte, length-len(data)), data...), nil
 }

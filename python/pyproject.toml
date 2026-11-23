@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "base32-key"
-version = "1.1.0"
+version = "1.2.0"
 description = "Human-friendly Base32 keys with a check digit per group"
 readme = "README.md"
 license = "MIT"
@@ -16,6 +16,9 @@ classifiers = [
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
+
+[project.scripts]
+base32-key = "base32_key.__main__:main_entry"
 
 [project.urls]
 Homepage = "https://github.com/ducminhquan/base32-key"

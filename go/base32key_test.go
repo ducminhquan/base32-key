@@ -56,6 +56,55 @@ type vectors struct {
 		Case    string `json:"case"`
 		Hex     string `json:"hex"`
 	} `json:"normalized"`
+	GroupCount []struct {
+		Key           string `json:"key"`
+		Groups        int    `json:"groups"`
+		Valid         bool   `json:"valid"`
+		InvalidGroups []int  `json:"invalidGroups"`
+		Code          string `json:"code"`
+	} `json:"groupCount"`
+	AutoCase []struct {
+		Key           string `json:"key"`
+		Hex           string `json:"hex"`
+		Code          string `json:"code"`
+		InvalidGroups []int  `json:"invalidGroups"`
+	} `json:"autoCase"`
+	Formatted []struct {
+		Input   string      `json:"input"`
+		Options jsonOptions `json:"options"`
+		Output  string      `json:"output"`
+	} `json:"formatted"`
+	Suggestions []struct {
+		Input       string      `json:"input"`
+		Options     jsonOptions `json:"options"`
+		Suggestions []string    `json:"suggestions"`
+	} `json:"suggestions"`
+}
+
+// jsonOptions are the JavaScript options used by the formatted and
+// suggestions vectors.
+type jsonOptions struct {
+	Grouped *bool  `json:"grouped"`
+	Checked *bool  `json:"checked"`
+	Case    string `json:"case"`
+	Prefix  string `json:"prefix"`
+	Groups  int    `json:"groups"`
+	Limit   int    `json:"limit"`
+}
+
+func (j jsonOptions) options() Options {
+	o := DefaultOptions
+	if j.Grouped != nil {
+		o.Grouped = *j.Grouped
+	}
+	if j.Checked != nil {
+		o.Checked = *j.Checked
+	}
+	o.Lower = j.Case == "lower"
+	o.AutoCase = j.Case == "auto"
+	o.Prefix = j.Prefix
+	o.Groups = j.Groups
+	return o
 }
 
 func load(t *testing.T) vectors {

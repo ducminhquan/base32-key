@@ -11,7 +11,7 @@ import hashlib
 import hmac
 import re
 import secrets
-from typing import Callable, Optional
+from typing import Callable, NamedTuple, Optional
 
 __all__ = [
     "Base32KeyError",
@@ -23,8 +23,12 @@ __all__ = [
     "generate_key",
     "sign_key",
     "verify_key",
+    "format_input",
+    "suggest",
     "MAX_LENGTH_PREFIXED_BYTES",
 ]
+
+__version__ = "1.2.0"
 
 UPPER = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 LOWER = "abcdefghijkmnpqrstuvwxyz23456789"
@@ -61,6 +65,24 @@ def _alphabet(case: str) -> str:
     if case == "lower":
         return LOWER
     raise ValueError(f'case must be "upper" or "lower", got {case!r}')
+
+
+def _decode_case(case: str) -> str:
+    """Decoding also accepts ``"auto"``: try both alphabets."""
+    if case == "auto":
+        return case
+    _alphabet(case)
+    return case
+
+
+def _check_groups(groups: int | None, grouped: bool) -> int | None:
+    if groups is None:
+        return None
+    if not isinstance(groups, int) or isinstance(groups, bool) or groups < 1:
+        raise ValueError(f"groups must be a positive integer, got {groups!r}")
+    if not grouped:
+        raise TypeError("The groups option requires grouped keys")
+    return groups
 
 
 _PREFIX_RE = re.compile(r"^[A-Za-z0-9]+$")
@@ -171,43 +193,82 @@ def _split(key: str, grouped: bool, checked: bool, case: str, normalize: bool) -
     return [folded[i:i + size] for i in range(0, len(folded), size)] or [""]
 
 
-def _analyze(key: str, grouped: bool, checked: bool, case: str,
-             normalize: bool = False,
-             prefix: str | None = None) -> tuple[str, list[int], str | None]:
-    if not isinstance(key, str):
-        raise TypeError("Invalid: expected a string")
+class _Analysis(NamedTuple):
+    hex: str
+    invalid: list[int]
+    code: str | None
+    # (expected, actual) when ``groups`` is given and the key has another count.
+    group_count: tuple[int, int] | None = None
+
+
+def _analyze_with(key: str, grouped: bool, checked: bool, case: str, normalize: bool,
+                  prefix: str | None, groups: int | None) -> _Analysis:
     alphabet = _alphabet(case)
-    prefix = _check_prefix(prefix)
     body = _strip_prefix(key, prefix, normalize)
     if body is None:
-        return "", [], "INVALID_PREFIX"
-    groups = _split(body, grouped, checked, case, normalize)
+        return _Analysis("", [], "INVALID_PREFIX")
+    parts = _split(body, grouped, checked, case, normalize)
     hex_out = ""
     invalid: list[int] = []
     code: str | None = None
-    for index, group in enumerate(groups):
+    for index, group in enumerate(parts):
         h, err = _decode_group(group, alphabet, grouped, checked)
         if err is not None or h is None:
             invalid.append(index)
             code = code or err
         else:
             hex_out += h
-    return hex_out, invalid, code
+    if groups is None or len(parts) == groups:
+        return _Analysis(hex_out, invalid, code)
+    # Flag the missing groups, or the extra ones.
+    lo, hi = sorted((len(parts), groups))
+    flagged = sorted(set(invalid) | set(range(lo, hi)))
+    return _Analysis(hex_out, flagged, code or "INVALID_LENGTH", (groups, len(parts)))
+
+
+def _analyze(key: str, grouped: bool, checked: bool, case: str,
+             normalize: bool = False, prefix: str | None = None,
+             groups: int | None = None) -> _Analysis:
+    if not isinstance(key, str):
+        raise TypeError("Invalid: expected a string")
+    case = _decode_case(case)
+    prefix = _check_prefix(prefix)
+    groups = _check_groups(groups, grouped)
+    first = _analyze_with(key, grouped, checked, "upper" if case == "auto" else case,
+                          normalize, prefix, groups)
+    if case != "auto" or first.code is None:
+        return first
+    other = _analyze_with(key, grouped, checked, "lower", normalize, prefix, groups)
+    if other.code is None or len(other.invalid) < len(first.invalid):
+        return other
+    return first
 
 
 def validate(key: str, *, grouped: bool = True, checked: bool = True,
              case: str = "upper", normalize: bool = False,
-             prefix: str | None = None) -> tuple[bool, list[int], str | None]:
-    """Return ``(valid, invalid_groups, code)`` without raising."""
-    _, invalid, code = _analyze(key, grouped, checked, case, normalize, prefix)
+             prefix: str | None = None,
+             groups: int | None = None) -> tuple[bool, list[int], str | None]:
+    """Return ``(valid, invalid_groups, code)`` without raising.
+
+    ``case="auto"`` tries both alphabets and keeps the one whose check
+    digits match. ``groups`` requires exactly that many groups; missing or
+    extra ones are listed in ``invalid_groups`` with ``INVALID_LENGTH``.
+    """
+    _, invalid, code, _count = _analyze(key, grouped, checked, case, normalize, prefix, groups)
     return code is None, invalid, code
 
 
 def _padded_hex(key: str, grouped: bool, checked: bool, case: str,
-                normalize: bool = False, prefix: str | None = None) -> str:
-    hex_out, invalid, code = _analyze(key, grouped, checked, case, normalize, prefix)
+                normalize: bool = False, prefix: str | None = None,
+                groups: int | None = None) -> str:
+    hex_out, invalid, code, count = _analyze(key, grouped, checked, case, normalize,
+                                             prefix, groups)
     if code == "INVALID_PREFIX":
         raise Base32KeyError(code, f'Invalid key: expected the prefix "{prefix}"')
+    if count is not None:
+        raise Base32KeyError("INVALID_LENGTH",
+                             f"Invalid key: expected {count[0]} groups, got {count[1]}",
+                             invalid)
     if code:
         where = (f"group {invalid[0] + 1}" if len(invalid) == 1
                  else "groups " + ", ".join(str(i + 1) for i in invalid))
@@ -218,16 +279,17 @@ def _padded_hex(key: str, grouped: bool, checked: bool, case: str,
 
 def to_hex(key: str, *, grouped: bool = True, checked: bool = True,
            case: str = "upper", normalize: bool = False,
-           prefix: str | None = None) -> str:
+           prefix: str | None = None, groups: int | None = None) -> str:
     """Decode a key to a hex string without leading zeros.
 
     With ``normalize`` spaces and hyphens are ignored and letters are folded
     to ``case``, so ``"222et 3zzgn"`` reads as ``"222ET-3ZZGN"``. With
     ``prefix`` the key must start with it (case-insensitive when
     normalizing). Raises :class:`Base32KeyError` naming every group that
-    failed.
+    failed. ``case`` and ``groups`` work as in :func:`validate`.
     """
-    return _padded_hex(key, grouped, checked, case, normalize, prefix).lstrip("0") or "0"
+    return (_padded_hex(key, grouped, checked, case, normalize, prefix, groups)
+            .lstrip("0") or "0")
 
 
 def from_bytes(data: bytes, *, with_length: bool = False, grouped: bool = True,
@@ -252,12 +314,15 @@ def from_bytes(data: bytes, *, with_length: bool = False, grouped: bool = True,
 
 def to_bytes(key: str, *, with_length: bool = False, length: int | None = None,
              grouped: bool = True, checked: bool = True, case: str = "upper",
-             normalize: bool = False, prefix: str | None = None) -> bytes:
-    """Decode a key to bytes. See :func:`from_bytes`."""
+             normalize: bool = False, prefix: str | None = None,
+             groups: int | None = None) -> bytes:
+    """Decode a key to bytes. See :func:`from_bytes`.
+
+    ``length`` left-pads the result with zero bytes to that size."""
     if with_length:
         if not grouped:
             raise TypeError("with_length requires grouped keys")
-        h = _padded_hex(key, True, checked, case, normalize, prefix)
+        h = _padded_hex(key, True, checked, case, normalize, prefix, groups)
         n = int(h[:5], 16)
         data = h[5:]
         expected = -(-n * 2 // 5) * 5
@@ -269,7 +334,7 @@ def to_bytes(key: str, *, with_length: bool = False, length: int | None = None,
             )
         return bytes.fromhex(data[len(padding):])
     h = to_hex(key, grouped=grouped, checked=checked, case=case,
-               normalize=normalize, prefix=prefix)
+               normalize=normalize, prefix=prefix, groups=groups)
     out = bytes.fromhex(h.zfill(len(h) + len(h) % 2))
     if length is None:
         return out
@@ -360,3 +425,122 @@ def verify_key(key: str, secret: str | bytes, *, tag_bytes: int = 5,
     if not hmac.compare_digest(tag, expected):
         raise Base32KeyError("INVALID_SIGNATURE", "Invalid key: the signature does not match")
     return payload
+
+
+def format_input(raw: str, *, grouped: bool = True, checked: bool = True,
+                 case: str = "upper", prefix: str | None = None,
+                 groups: int | None = None) -> str:
+    """Format raw user input as a key: drop whitespace, apply the letter case
+    and put hyphens between groups. Partial input is fine, and characters
+    outside the alphabet are kept so :func:`validate` can flag them. With
+    ``groups``, input beyond that many groups is dropped.
+
+    >>> format_input("222et3zz")
+    '222ET-3ZZ'
+    """
+    if not isinstance(raw, str):
+        raise TypeError("Invalid: expected a string")
+    case = _decode_case(case)
+    fold = "lower" if case == "lower" else "upper"
+    prefix = _check_prefix(prefix)
+    groups = _check_groups(groups, grouped)
+    rest = raw
+    if prefix:
+        cleaned = re.sub(r"[\s-]+", "", raw).upper()
+        if prefix.upper().startswith(cleaned):
+            return cleaned  # still typing the prefix
+        stripped = _strip_prefix(raw, prefix, True)
+        rest = raw if stripped is None else stripped
+    parts = _split(rest, grouped, checked, fold, True)
+    if groups is not None:
+        parts = parts[:groups]
+    return _add_prefix(("-" if grouped else "").join(parts), prefix)
+
+
+# Characters people confuse when reading or typing a key: each one maps to
+# what it may have been meant as. Same table as the npm package.
+_LOOKALIKES = {
+    "2": "Zz", "Z": "2", "5": "Ss", "S": "5", "8": "B", "B": "8",
+    "6": "Gb", "G": "6C", "C": "G", "U": "VY", "V": "UY", "Y": "VU",
+    "M": "N", "N": "M", "0": "DQdq", "O": "DQ", "1": "LJ7ij", "I": "LJ",
+    "z": "2", "s": "5", "b": "6", "g": "9q", "q": "g9", "9": "gq",
+    "u": "vy", "v": "uy", "y": "vu", "m": "n", "n": "m", "o": "dq",
+    "l": "ij7", "i": "j", "j": "i",
+}
+
+
+def _group_candidates(group: str, alphabet: str) -> list[str]:
+    out: list[str] = []
+
+    def add(candidate: str) -> None:
+        if candidate != group and candidate not in out:
+            out.append(candidate)
+
+    # Two neighbouring characters typed in the wrong order.
+    for i in range(len(group) - 1):
+        add(group[:i] + group[i + 1] + group[i] + group[i + 2:])
+    # A character misread as a look-alike.
+    for i, ch in enumerate(group):
+        for c in _LOOKALIKES.get(ch, ""):
+            if c in alphabet:
+                add(group[:i] + c + group[i + 1:])
+    return out
+
+
+def suggest(key: str, *, grouped: bool = True, checked: bool = True,
+            case: str = "upper", normalize: bool = True,
+            prefix: str | None = None, groups: int | None = None,
+            limit: int = 5) -> list[str]:
+    """Suggest valid keys close to a mistyped one, for a "Did you mean"
+    hint. Each invalid group is repaired by swapping two neighbouring
+    characters or replacing a look-alike (2/Z, 5/S, 8/B, U/V/Y, 0/O/D/Q …).
+    Returns ``[]`` for a valid key or when nothing close is found. Gives the
+    same suggestions as ``suggest`` in the npm package.
+
+    >>> suggest("222TE-3ZZGN")
+    ['222ET-3ZZGN']
+    """
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+        raise ValueError(f"limit must be a positive integer, got {limit!r}")
+    case = _decode_case(case)
+    prefix = _check_prefix(prefix)
+    groups = _check_groups(groups, grouped)
+    results: list[str] = []
+    for key_case in (["upper", "lower"] if case == "auto" else [case]):
+        valid, invalid, code = validate(key, grouped=grouped, checked=checked,
+                                        case=key_case, normalize=normalize,
+                                        prefix=prefix, groups=groups)
+        if valid:
+            return []
+        if code == "INVALID_PREFIX":
+            continue
+        formatted = format_input(key, grouped=grouped, checked=checked,
+                                 case=key_case, prefix=prefix)
+        head = f"{prefix}-" if prefix else ""
+        body = formatted[len(head):]
+        parts = body.split("-") if grouped else [body]
+        if any(i >= len(parts) for i in invalid):
+            continue
+        alphabet = _alphabet(key_case)
+        choices = [
+            [c for c in _group_candidates(parts[i], alphabet)
+             if validate(c, grouped=grouped, checked=checked, case=key_case)[0]]
+            for i in invalid
+        ]
+        if any(not c for c in choices):
+            continue
+
+        def combine(depth: int, picked: list[str]) -> None:
+            if len(results) >= limit:
+                return
+            if depth == len(choices):
+                fixed = list(parts)
+                for index, part in zip(invalid, picked):
+                    fixed[index] = part
+                results.append(head + ("-" if grouped else "").join(fixed))
+                return
+            for candidate in choices[depth]:
+                combine(depth + 1, picked + [candidate])
+
+        combine(0, [])
+    return results[:limit]
