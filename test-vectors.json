@@ -1,5 +1,5 @@
 {
-  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups. signed keys come from signKey(payload, secret, { tagBytes, prefix, case }) (HMAC-SHA256 over the payload, tag truncated to tagBytes, then the withLength layout). normalized inputs decode to hex with normalize on and the given options. prefixed keys are fromHexString(hex, { prefix }).",
+  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups. signed keys come from signKey(payload, secret, { tagBytes, prefix, case }) (HMAC-SHA256 over the payload, tag truncated to tagBytes, then the withLength layout). normalized inputs decode to hex with normalize on and the given options. prefixed keys are fromHexString(hex, { prefix }). groupCount entries come from validate(key, { groups, normalize: false }). autoCase keys are decoded with toHexString(key, { case: 'auto' }). formatted entries come from formatInput(input, options) and suggestions from suggest(input, options).",
   "valid": [
     {
       "hex": "fedcba9876543210",
@@ -300,6 +300,200 @@
       "secret": "wrong",
       "tagBytes": 5,
       "code": "INVALID_SIGNATURE"
+    }
+  ],
+  "groupCount": [
+    {
+      "key": "222ET-3ZZGN",
+      "groups": 2,
+      "valid": true,
+      "invalidGroups": []
+    },
+    {
+      "key": "222ET",
+      "groups": 2,
+      "valid": false,
+      "invalidGroups": [1],
+      "code": "INVALID_LENGTH"
+    },
+    {
+      "key": "222ET-3ZZGN-222ET",
+      "groups": 2,
+      "valid": false,
+      "invalidGroups": [2],
+      "code": "INVALID_LENGTH"
+    },
+    {
+      "key": "222ET-3ZZGX-2",
+      "groups": 3,
+      "valid": false,
+      "invalidGroups": [1, 2],
+      "code": "CHECKSUM_MISMATCH"
+    }
+  ],
+  "autoCase": [
+    {
+      "key": "222ET-3ZZGN",
+      "hex": "c0ffee"
+    },
+    {
+      "key": "aaan3-b99qw",
+      "hex": "c0ffee"
+    },
+    {
+      "key": "AAAN3-B99QW",
+      "code": "CHECKSUM_MISMATCH",
+      "invalidGroups": [0, 1]
+    },
+    {
+      "key": "222ET-3ZZGX",
+      "code": "CHECKSUM_MISMATCH",
+      "invalidGroups": [1]
+    }
+  ],
+  "formatted": [
+    {
+      "input": "222et3zz",
+      "options": {},
+      "output": "222ET-3ZZ"
+    },
+    {
+      "input": "222et3zzgn22",
+      "options": {
+        "groups": 2
+      },
+      "output": "222ET-3ZZGN"
+    },
+    {
+      "input": " 222e t-3zzgn ",
+      "options": {},
+      "output": "222ET-3ZZGN"
+    },
+    {
+      "input": "l",
+      "options": {
+        "prefix": "LC"
+      },
+      "output": "L"
+    },
+    {
+      "input": "lc222et",
+      "options": {
+        "prefix": "LC"
+      },
+      "output": "LC-222ET"
+    },
+    {
+      "input": "222et",
+      "options": {
+        "prefix": "LC"
+      },
+      "output": "LC-222ET"
+    },
+    {
+      "input": "abcd1234",
+      "options": {
+        "grouped": false
+      },
+      "output": "ABCD1234"
+    },
+    {
+      "input": "2222abcd",
+      "options": {
+        "checked": false
+      },
+      "output": "2222-ABCD"
+    },
+    {
+      "input": "222et",
+      "options": {
+        "case": "lower"
+      },
+      "output": "222et"
+    },
+    {
+      "input": "",
+      "options": {},
+      "output": ""
+    }
+  ],
+  "suggestions": [
+    {
+      "input": "222TE-3ZZGN",
+      "options": {},
+      "suggestions": ["222ET-3ZZGN"]
+    },
+    {
+      "input": "222ET-3ZZNG",
+      "options": {},
+      "suggestions": ["222ET-3ZZGN"]
+    },
+    {
+      "input": "222ET-3ZZGN",
+      "options": {},
+      "suggestions": []
+    },
+    {
+      "input": "22ZET-3ZZGN",
+      "options": {},
+      "suggestions": ["222ET-3ZZGN"]
+    },
+    {
+      "input": "222E7-3ZZGN",
+      "options": {},
+      "suggestions": []
+    },
+    {
+      "input": "LC-222TE-3ZZGN",
+      "options": {
+        "prefix": "LC"
+      },
+      "suggestions": ["LC-222ET-3ZZGN"]
+    },
+    {
+      "input": "aaa3n-b99qw",
+      "options": {
+        "case": "lower"
+      },
+      "suggestions": ["aaan3-b99qw"]
+    },
+    {
+      "input": "aaa3n-b99qw",
+      "options": {
+        "case": "auto"
+      },
+      "suggestions": ["aaan3-b99qw"]
+    },
+    {
+      "input": "QVKFG-LFFFQ",
+      "options": {},
+      "suggestions": ["QVFKG-LFFFQ", "QVKGF-LFFFQ", "QYKFG-LFFFQ"]
+    },
+    {
+      "input": "QVKFG-LFFFQ",
+      "options": {
+        "limit": 2
+      },
+      "suggestions": ["QVFKG-LFFFQ", "QVKGF-LFFFQ"]
+    },
+    {
+      "input": "222TE-3ZZGN",
+      "options": {
+        "groups": 2
+      },
+      "suggestions": ["222ET-3ZZGN"]
+    },
+    {
+      "input": "222TE-3ZZNG",
+      "options": {
+        "limit": 2
+      },
+      "suggestions": ["222ET-3ZZGN"]
+    },
+    {
+      "input": "0000O",
+      "options": {},
+      "suggestions": []
     }
   ]
 }

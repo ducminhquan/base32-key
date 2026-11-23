@@ -61,3 +61,29 @@ test('test-vectors.json >> signed keys', async () => {
     ).rejects.toMatchObject({ code: v.code });
   }
 });
+
+test('test-vectors.json >> group counts, auto case, formatting, suggestions', async () => {
+  const { formatInput, toHexString } = await import('./decode');
+  const { suggest } = await import('./suggest');
+  for (const { key, groups, ...expected } of vectors.groupCount) {
+    expect(validate(key, { groups, normalize: false })).toEqual(expected);
+  }
+  for (const v of vectors.autoCase) {
+    if ('hex' in v && v.hex !== undefined) {
+      expect(toHexString(v.key, { case: 'auto' })).toBe(v.hex);
+    } else {
+      expect(() => toHexString(v.key, { case: 'auto' })).toThrow(
+        expect.objectContaining({
+          code: v.code,
+          invalidGroups: v.invalidGroups,
+        })
+      );
+    }
+  }
+  for (const { input, options, output } of vectors.formatted) {
+    expect(formatInput(input, options as object)).toBe(output);
+  }
+  for (const { input, options, suggestions } of vectors.suggestions) {
+    expect(suggest(input, options as object)).toEqual(suggestions);
+  }
+});

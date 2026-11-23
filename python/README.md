@@ -42,10 +42,35 @@ Signed keys are the same as `signKey` in the npm package, so a key signed in Nod
 
 All options are keyword arguments, with the same defaults as the npm package:
 
-- `grouped`, `checked`, `case` (`"upper"` or `"lower"`): the key format.
+- `grouped`, `checked`, `case` (`"upper"` or `"lower"`; decoding also takes `"auto"`, which tries both): the key format.
 - `prefix`: letters and digits put in front, e.g. `from_hex("c0ffee", prefix="LC")` gives `'LC-222ET-3ZZGN'`. Decoding requires it and raises `INVALID_PREFIX` otherwise.
 - `normalize` (decoding only): ignore spaces and hyphens and fold the case, so `to_hex("lc 222et 3zzgn", prefix="LC", normalize=True)` gives `'c0ffee'`.
 
-Typo suggestions, `case="auto"` and the CLI are only in the npm package for now.
+- `groups` (decoding): the key must have exactly that many groups, e.g. `validate("222ET", groups=4)` gives `(False, [1, 2, 3], 'INVALID_LENGTH')`.
+- `length` (`to_bytes`): left-pad the result with zero bytes to that size.
+
+### Input fields
+
+```python
+from base32_key import format_input, suggest
+
+format_input("222et3zz")               # '222ET-3ZZ', while the user types
+format_input("222et3zzgn22", groups=2) # '222ET-3ZZGN'
+suggest("222TE-3ZZGN")                 # ['222ET-3ZZGN'], for "Did you mean ...?"
+```
+
+`suggest` repairs only the invalid groups, by swapping two neighbouring characters or replacing a look-alike (2/Z, 5/S, 8/B, U/V/Y, 0/O/D/Q, 1/I/L/J), and gives the same suggestions as the npm package.
+
+### Command line
+
+```sh
+base32-key encode c0ffee               # 222ET-3ZZGN (or: python -m base32_key ...)
+base32-key decode --normalize "222et 3zzgn"
+base32-key validate --groups 4 --json K7RQX-2HMTD-9WCJA-PNE4F
+base32-key generate --count 5
+base32-key encode --file data.bin      # bytes with their length
+```
+
+The commands and flags are the same as the npm CLI; values are read from standard input when none are given.
 
 Run the tests from this folder with `python -m unittest discover -s tests -t .` after `pip install -e .`, or with `PYTHONPATH=src`.
