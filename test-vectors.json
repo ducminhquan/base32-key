@@ -1,5 +1,5 @@
 {
-  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups.",
+  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups. signed keys come from signKey(payload, secret, { tagBytes, prefix, case }) (HMAC-SHA256 over the payload, tag truncated to tagBytes, then the withLength layout). normalized inputs decode to hex with normalize on and the given options. prefixed keys are fromHexString(hex, { prefix }).",
   "valid": [
     {
       "hex": "fedcba9876543210",
@@ -194,6 +194,112 @@
     {
       "hex": "0102030405060708090a",
       "withLength": "222C9-26324-83275-2S5JB-J4ACY"
+    }
+  ],
+  "signed": [
+    {
+      "payloadHex": "00002a",
+      "secret": "s3cret",
+      "tagBytes": 5,
+      "key": "222AF-22222-223CQ-C3JCL-3HCR4"
+    },
+    {
+      "payloadHex": "",
+      "secret": "s3cret",
+      "tagBytes": 5,
+      "key": "2227K-L9HUA-SW87Z"
+    },
+    {
+      "payloadHex": "0102030405060708",
+      "secret": "another secret",
+      "tagBytes": 8,
+      "key": "222JU-22237-2A3JA-A3A8L-2W6E3-XCY88-7G9A9-HQ858"
+    },
+    {
+      "payloadHex": "c0ffee",
+      "secret": "s3cret",
+      "tagBytes": 4,
+      "prefix": "LC",
+      "key": "LC-2229V-3J9ZY-XVFQG-DFJGU"
+    },
+    {
+      "payloadHex": "ff",
+      "secret": "k",
+      "tagBytes": 32,
+      "case": "lower",
+      "key": "aabbw-aaary-9rz2y-xc7yg-24yct-r425j-ej4jh-399ra-bwm4q-argej-izv3h-ukiuu-x458h-u5ww4-r7g6p"
+    }
+  ],
+  "prefixed": [
+    {
+      "hex": "c0ffee",
+      "prefix": "LC",
+      "key": "LC-222ET-3ZZGN"
+    },
+    {
+      "hex": "fedcba9876543210",
+      "prefix": "VOUCHER2026",
+      "key": "VOUCHER2026-222HQ-XR7UV-M3V7M-AEJJS"
+    },
+    {
+      "hex": "0",
+      "prefix": "A",
+      "key": "A-22222"
+    }
+  ],
+  "normalized": [
+    {
+      "input": "222et 3zzgn",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "  222ET3ZZGN ",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "222E-T3ZZ-GN",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "lc 222et 3zzgn",
+      "prefix": "LC",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "LC-222ET-3ZZGN",
+      "prefix": "LC",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "-lc222et3zzgn",
+      "prefix": "LC",
+      "hex": "c0ffee"
+    },
+    {
+      "input": "NB99 QJ",
+      "grouped": false,
+      "case": "lower",
+      "hex": "c0ffee"
+    }
+  ],
+  "invalidPrefixed": [
+    {
+      "key": "222ET-3ZZGN",
+      "prefix": "LC",
+      "code": "INVALID_PREFIX"
+    },
+    {
+      "key": "LX-222ET-3ZZGN",
+      "prefix": "LC",
+      "code": "INVALID_PREFIX"
+    }
+  ],
+  "invalidSigned": [
+    {
+      "key": "222AF-22222-223CQ-C3JCL-3HCR4",
+      "secret": "wrong",
+      "tagBytes": 5,
+      "code": "INVALID_SIGNATURE"
     }
   ]
 }
