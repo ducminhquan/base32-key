@@ -28,6 +28,8 @@
     "neighbouring",
     "npmjs",
     "prettierignore",
+    "pypi",
+    "pyproject",
     "sandboxed",
     "transpiled",
     "typedoc",

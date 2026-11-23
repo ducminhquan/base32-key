@@ -1,6 +1,12 @@
 # base32-key for Python
 
-A Python port of the core of [base32-key](https://github.com/ducminhquan/base32-key): the same alphabets, the same check digit per group and the same keys. It is tested against the shared [test-vectors.json](../test-vectors.json), so keys made in JavaScript decode here and the other way round.
+A Python port of the core of [base32-key](https://github.com/ducminhquan/base32-key): the same alphabets, the same check digit per group and the same keys. It is tested against the shared [test-vectors.json](https://github.com/ducminhquan/base32-key/blob/master/test-vectors.json), so keys made in JavaScript decode here and the other way round.
+
+```sh
+pip install base32-key
+```
+
+Python 3.9 or later, no dependencies.
 
 ```python
 from base32_key import from_hex, to_hex, from_bytes, to_bytes, validate, Base32KeyError

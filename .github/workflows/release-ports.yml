@@ -1,0 +1,180 @@
+# Releases the Python and Go ports.
+#
+# Actions -> Release ports -> Run workflow on master, then pick a target.
+#
+# - Python: the version comes from python/pyproject.toml. The workflow runs
+#   the tests, builds the sdist and wheel, tags python/vX.Y.Z and uploads to
+#   PyPI with trusted publishing (OIDC, no token) and attestations. The
+#   upload job uses the "pypi" environment: add yourself as a required
+#   reviewer there so every upload waits for your approval.
+# - Go: the version comes from go/version.go. The workflow runs the tests,
+#   tags go/vX.Y.Z (the tag format Go needs for a module in a subfolder) and
+#   asks the Go module proxy to fetch it, so it shows on pkg.go.dev.
+#
+# See .github/RELEASING.md.
+
+name: Release ports
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to release'
+        required: true
+        default: both
+        type: choice
+        options: [both, python, go]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-ports
+  cancel-in-progress: false
+
+jobs:
+  python-build:
+    if: inputs.target != 'go'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the python/v* tag
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      live: ${{ steps.version.outputs.live }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.13'
+
+      - name: Read the version
+        id: version
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "::error::Run the workflow on master (got $GITHUB_REF)"
+            exit 1
+          fi
+          VERSION="$(python -c 'import tomllib; print(tomllib.load(open("python/pyproject.toml", "rb"))["project"]["version"])')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          STATUS="$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/base32-key/$VERSION/json")"
+          if [ "$STATUS" = "200" ]; then
+            echo "live=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::base32-key $VERSION is already on PyPI, skipping the upload"
+          else
+            echo "live=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        working-directory: python
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -v
+
+      - name: Build
+        working-directory: python
+        run: |
+          python -m pip install build==1.6.1 twine==7.0.0
+          python -m build
+          python -m twine check --strict dist/*
+
+      - name: Tag python/v${{ steps.version.outputs.version }}
+        env:
+          TAG: python/v${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+              if [ "${{ steps.version.outputs.live }}" = "true" ]; then
+                echo "Tag $TAG exists and the version is live; nothing to do"
+                exit 0
+              fi
+              echo "::error::Tag $TAG already exists on another commit. Bump python/pyproject.toml first."
+              exit 1
+            fi
+            echo "Tag $TAG already points at master"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "chore(release): $TAG"
+          git push origin "refs/tags/$TAG"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: python-dist
+          path: python/dist/
+          if-no-files-found: error
+
+  python-publish:
+    needs: python-build
+    if: needs.python-build.outputs.live == 'false'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/base32-key/${{ needs.python-build.outputs.version }}/
+    permissions:
+      id-token: write # PyPI trusted publishing and attestations
+    steps:
+      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: python-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  go:
+    if: inputs.target != 'python'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the go/v* tag
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go/go.mod
+          cache: false
+
+      - name: Test
+        working-directory: go
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+
+      - name: Tag and announce to the Go module proxy
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "::error::Run the workflow on master (got $GITHUB_REF)"
+            exit 1
+          fi
+          VERSION="$(sed -n 's/^const Version = "\(.*\)"$/\1/p' go/version.go)"
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read the version from go/version.go"
+            exit 1
+          fi
+          TAG="go/v$VERSION"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            if [ "$(git rev-parse "$TAG^{commit}")" != "$(git rev-parse HEAD)" ]; then
+              echo "::notice::Tag $TAG already exists on another commit; bump go/version.go to release again"
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "chore(release): $TAG"
+            git push origin "refs/tags/$TAG"
+          fi
+          # Make the version show up on proxy.golang.org and pkg.go.dev.
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 10 "https://proxy.golang.org/github.com/ducminhquan/base32-key/go/@v/v$VERSION.info"
+          echo
+          {
+            echo "### Go module $TAG"
+            echo
+            echo "\`go get github.com/ducminhquan/base32-key/go@v$VERSION\`"
+            echo
+            echo "https://pkg.go.dev/github.com/ducminhquan/base32-key/go@v$VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"
