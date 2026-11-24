@@ -1,0 +1,4 @@
+go test fuzz v1
+string("0222022202220222")
+byte('\u00ad')
+string("")

@@ -32,6 +32,9 @@ describe('suggest', () => {
     expect(suggest('222ET-3ZZGN')).toEqual([]);
     expect(suggest('222TE-3ZZGN-ZZZZZ')).toEqual([]);
     expect(suggest('222TE-3ZZGN', { groups: 3 })).toEqual([]);
+    // Fixing characters cannot remove the extra group.
+    expect(suggest('222TE-3ZZNG', { groups: 1 })).toEqual([]);
+    expect(suggest('222TE-3ZZGN-', { normalize: false })).toEqual([]);
     expect(suggest('XX-222ET', { prefix: 'LC' })).toEqual([]);
   });
 

@@ -156,13 +156,15 @@ func splitKey(key string, o Options) []string {
 	if o.Checked {
 		size = 5
 	}
+	// Split by character, not byte, so non-ASCII input stays whole.
+	runes := []rune(folded)
 	groups := []string{}
-	for i := 0; i < len(folded); i += size {
+	for i := 0; i < len(runes); i += size {
 		end := i + size
-		if end > len(folded) {
-			end = len(folded)
+		if end > len(runes) {
+			end = len(runes)
 		}
-		groups = append(groups, folded[i:end])
+		groups = append(groups, string(runes[i:end]))
 	}
 	if len(groups) == 0 {
 		groups = []string{""}

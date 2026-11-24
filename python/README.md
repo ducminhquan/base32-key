@@ -31,7 +31,7 @@ from base32_key import generate_key, sign_key, verify_key
 generate_key()                         # e.g. 'K7RQX-2HMTD-9WCJA-PNE4F' (80 random bits)
 generate_key(groups=3, prefix="LC", filter=lambda k: k not in used)
 
-key = sign_key(b"\x00\x00\x01\x2a", "s3cret")   # '222AF-22222-223CQ-C3JCL-3HCR4'
+key = sign_key(b"\x00\x00\x01\x2a", "s3cret")   # '222BA-22222-22BCC-8255N-DK73S'
 verify_key(key, "s3cret")              # b'\x00\x00\x01*'
 verify_key(key, "wrong")               # raises Base32KeyError, code 'INVALID_SIGNATURE'
 ```

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 (2026-11-24)
+
+- `suggest` with `groups` no longer returns a key whose group count is still wrong (changing characters cannot add or remove a group).
+- Property tests with Hypothesis (round trips, decoding arbitrary input, `format_input` and `suggest`).
+- README: the signed-key example shows the right key.
+
 ## 1.2.0 (2026-11-23)
 
 - `groups=` on `validate`, `to_hex` and `to_bytes`: the key must have exactly that many groups; missing or extra ones give `INVALID_LENGTH` and are listed in `invalid_groups`.

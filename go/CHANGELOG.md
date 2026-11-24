@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.1 (2026-11-24)
+
+- Normalized input is split into groups by character, not byte, so non-ASCII input no longer produces broken UTF-8 (found by fuzzing).
+- `Suggest` with `Groups` no longer returns a key whose group count is still wrong.
+- Fuzz tests (`FuzzBytesRoundTrip`, `FuzzDecode`) and runnable examples for pkg.go.dev.
+- README: the signed-key example shows the right key.
+
 ## v1.2.0 (2026-11-23)
 
 - `Options.Groups`: the key must have exactly that many groups; missing or extra ones give `INVALID_LENGTH` and are listed in `InvalidGroups`.
