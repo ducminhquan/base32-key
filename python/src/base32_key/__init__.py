@@ -28,7 +28,7 @@ __all__ = [
     "MAX_LENGTH_PREFIXED_BYTES",
 ]
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 UPPER = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 LOWER = "abcdefghijkmnpqrstuvwxyz23456789"
@@ -519,6 +519,10 @@ def suggest(key: str, *, grouped: bool = True, checked: bool = True,
         head = f"{prefix}-" if prefix else ""
         body = formatted[len(head):]
         parts = body.split("-") if grouped else [body]
+        # Changing characters cannot add or remove groups.
+        if groups is not None and len(parts) != groups:
+            continue
+        # With normalize=False a strict check may flag groups formatting drops.
         if any(i >= len(parts) for i in invalid):
             continue
         alphabet = _alphabet(key_case)

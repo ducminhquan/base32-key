@@ -124,6 +124,25 @@
         margin: 0;
         color: var(--fg);
       }
+      pre {
+        margin: 0.5rem 0 1rem;
+        padding: 0.75rem;
+        overflow-x: auto;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 0.375rem;
+        font:
+          0.85rem/1.5 ui-monospace,
+          monospace;
+      }
+      h3 {
+        margin: 1rem 0 0.25rem;
+        font-size: 1rem;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
       output {
         display: block;
         margin-top: 0.75rem;
@@ -323,6 +342,52 @@
           <button id="generate" type="button">Generate 5 keys</button>
         </div>
         <ul class="keys" id="keys"></ul>
+      </section>
+
+      <section>
+        <h2>On the server: Python and Go</h2>
+        <p class="note">
+          The same keys in other languages, tested against the shared
+          <a
+            href="https://github.com/ducminhquan/base32-key/blob/master/test-vectors.json"
+            >test vectors</a
+          >: a key made on this page decodes there, and the other way round.
+        </p>
+
+        <h3>
+          Python 3.9+ (<a href="https://pypi.org/project/base32-key/">PyPI</a>)
+        </h3>
+        <pre><code>pip install base32-key
+
+from base32_key import from_hex, to_hex, validate, suggest, sign_key, verify_key
+
+from_hex("c0ffee")                      # '222ET-3ZZGN'
+to_hex("222et 3zzgn", normalize=True)   # 'c0ffee'
+validate("222ET-3ZZGX")                 # (False, [1], 'CHECKSUM_MISMATCH')
+suggest("222TE-3ZZGN")                  # ['222ET-3ZZGN']
+key = sign_key(b"\x00\x00\x01\x2a", "s3cret")
+verify_key(key, "s3cret")               # b'\x00\x00\x01*'</code></pre>
+
+        <h3>
+          Go 1.22+ (<a
+            href="https://pkg.go.dev/github.com/ducminhquan/base32-key/go"
+            >pkg.go.dev</a
+          >)
+        </h3>
+        <pre><code>go get github.com/ducminhquan/base32-key/go@latest
+
+import base32key "github.com/ducminhquan/base32-key/go"
+
+key, _ := base32key.FromHex("c0ffee", base32key.DefaultOptions) // "222ET-3ZZGN"
+res := base32key.Validate("222ET-3ZZGX", base32key.DefaultOptions)
+// res.Valid == false, res.InvalidGroups == [1]
+base32key.Suggest("222TE-3ZZGN", base32key.DefaultOptions, 0) // ["222ET-3ZZGN"]</code></pre>
+
+        <h3>Command line</h3>
+        <pre><code>npx base32-key encode c0ffee         # Node.js
+python -m base32_key decode 222ET-3ZZGN
+go install github.com/ducminhquan/base32-key/go/cmd/base32key@latest
+base32key generate -count 5</code></pre>
       </section>
     </main>
 

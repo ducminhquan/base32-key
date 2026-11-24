@@ -111,14 +111,14 @@ func Suggest(key string, o Options, limit int) []string {
 		if o.Grouped {
 			parts = strings.Split(body, "-")
 		}
+		// Changing characters cannot add or remove groups.
+		if o.Groups > 0 && o.Grouped && len(parts) != o.Groups {
+			continue
+		}
 		single := Options{Grouped: o.Grouped, Checked: o.Checked, Lower: lower}
 		choices := make([][]string, 0, len(res.InvalidGroups))
 		ok := true
 		for _, index := range res.InvalidGroups {
-			if index >= len(parts) {
-				ok = false
-				break
-			}
 			var valid []string
 			for _, c := range groupCandidates(parts[index], single.alphabet()) {
 				if Validate(c, single).Valid {

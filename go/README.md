@@ -24,7 +24,7 @@ key, _ := base32key.GenerateKey(base32key.GenerateOptions{Options: base32key.Def
 // e.g. "K7RQX-2HMTD-9WCJA-PNE4F" (80 random bits); also Groups, Filter, MaxAttempts
 
 signed, _ := base32key.SignKey([]byte{0, 0, 1, 42}, []byte("s3cret"), 0, base32key.DefaultOptions)
-// "222AF-22222-223CQ-C3JCL-3HCR4", the same key signKey makes in Node.js
+// "222BA-22222-22BCC-8255N-DK73S", the same key signKey makes in Node.js
 payload, err := base32key.VerifyKey(signed, []byte("s3cret"), 0, base32key.DefaultOptions)
 // payload == []byte{0, 0, 1, 42}; a wrong secret gives an *Error with code INVALID_SIGNATURE
 ```

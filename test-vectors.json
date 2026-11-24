@@ -415,6 +415,11 @@
       "input": "",
       "options": {},
       "output": ""
+    },
+    {
+      "input": "é222et3zzgn",
+      "options": {},
+      "output": "É222E-T3ZZG-N"
     }
   ],
   "suggestions": [
@@ -493,6 +498,13 @@
     {
       "input": "0000O",
       "options": {},
+      "suggestions": []
+    },
+    {
+      "input": "222TE-3ZZNG",
+      "options": {
+        "groups": 1
+      },
       "suggestions": []
     }
   ]

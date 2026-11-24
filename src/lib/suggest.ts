@@ -121,8 +121,10 @@ export function suggest(
     const groups = resolved.grouped ? body.split('-') : [body];
     const alphabet =
       keyCase === 'upper' ? BASE_32_DIGITS : BASE_32_DIGITS_LOWERCASE;
-    const fixable = result.invalidGroups.every((i) => i < groups.length);
-    if (!fixable) continue;
+    // Changing characters cannot add or remove groups.
+    if (resolved.groups !== undefined && groups.length !== resolved.groups) {
+      continue;
+    }
 
     // Valid replacements for each invalid group.
     const options = result.invalidGroups.map((index) =>
@@ -146,7 +148,7 @@ export function suggest(
         result.invalidGroups.forEach((index, k) => {
           fixed[index] = parts[k];
         });
-        // Each group is valid now, so the whole key is.
+        // Each group is valid now and the count is right, so the key is.
         results.push(prefix + fixed.join(resolved.grouped ? '-' : ''));
         return;
       }
