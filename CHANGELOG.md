@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.2.0](https://github.com/ducminhquan/base32-key/compare/v3.1.0...v3.2.0) (2026-11-24)
+
+### Features
+
+* key templates for vouchers, activation codes and order numbers ([#25](https://github.com/ducminhquan/base32-key/issues/25)) ([d6fe051](https://github.com/ducminhquan/base32-key/commit/d6fe0514a379637106b301763674aea38e154439))
+
 ## [3.1.0](https://github.com/ducminhquan/base32-key/compare/v3.0.0...v3.1.0) (2026-11-24)
 
 ### Features
