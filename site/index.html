@@ -328,6 +328,66 @@
       </section>
 
       <section>
+        <h2>Vouchers: key templates</h2>
+        <p class="note">
+          <code>base32-key/template</code> packs typed fields into a signed key,
+          so a shop can read and check a voucher offline. This is the
+          <code>voucher</code> preset, signed with the secret above; with
+          <em>Encrypt</em> the amount and serial cannot be read without the
+          secret.
+        </p>
+        <div class="row">
+          <label for="v-campaign" style="margin: 0">Campaign</label>
+          <input
+            id="v-campaign"
+            type="number"
+            min="0"
+            max="4095"
+            value="12"
+            style="width: 6em"
+          />
+          <label for="v-amount" style="margin: 0">Amount</label>
+          <input
+            id="v-amount"
+            type="number"
+            min="0"
+            step="1000"
+            value="50000"
+            style="width: 8em"
+          />
+        </div>
+        <div class="row">
+          <label for="v-expires" style="margin: 0">Expires</label>
+          <input id="v-expires" type="date" value="2026-12-31" />
+          <label for="v-serial" style="margin: 0">Serial</label>
+          <input
+            id="v-serial"
+            type="number"
+            min="0"
+            max="1048575"
+            value="1"
+            style="width: 8em"
+          />
+        </div>
+        <div class="row">
+          <label><input id="v-encrypt" type="checkbox" /> Encrypt</label>
+          <button id="v-sign" type="button">Make voucher</button>
+        </div>
+        <output id="v-out"></output>
+        <div class="row">
+          <label for="v-key" style="margin: 0">Voucher to check</label>
+          <input
+            id="v-key"
+            autocomplete="off"
+            spellcheck="false"
+            style="flex: 1"
+          />
+          <button id="v-verify" type="button">Check</button>
+        </div>
+        <div class="status" id="v-status" role="status"></div>
+      </section>
+
+      <section>
         <h2>Generate</h2>
         <div class="row">
           <label for="groups" style="margin: 0">Groups</label>
@@ -401,6 +461,7 @@ base32key generate -count 5</code></pre>
         toHexString,
         verifyKey,
       } from './base32-key.min.js';
+      import { defineKeyTemplate, presets } from './template.js';
 
       defineKeyInput();
 
@@ -538,6 +599,43 @@ base32key generate -count 5</code></pre>
         }
       }
 
+      const voucher = () =>
+        defineKeyTemplate(presets.voucher({ encrypt: $('v-encrypt').checked }));
+
+      async function signVoucher() {
+        try {
+          const key = await voucher().sign(
+            {
+              campaign: Number($('v-campaign').value),
+              amount: Number($('v-amount').value),
+              expires: $('v-expires').value,
+              serial: Number($('v-serial').value),
+            },
+            $('sign-secret').value
+          );
+          $('v-out').textContent = key;
+          $('v-key').value = key;
+          await verifyVoucher();
+        } catch (error) {
+          $('v-out').textContent = error.message;
+        }
+      }
+
+      async function verifyVoucher() {
+        const status = $('v-status');
+        try {
+          const v = await voucher().verify(
+            $('v-key').value,
+            $('sign-secret').value
+          );
+          status.className = 'status ok';
+          status.textContent = `Valid: campaign ${v.campaign}, ${v.amount} until ${v.expires}, serial ${v.serial}`;
+        } catch (error) {
+          status.className = 'status bad';
+          status.textContent = `${error.code ?? 'Error'}: ${error.message}`;
+        }
+      }
+
       const refresh = () => {
         checkKey();
         encodeHex();
@@ -552,12 +650,16 @@ base32key generate -count 5</code></pre>
       $('generate').addEventListener('click', generate);
       $('sign').addEventListener('click', sign);
       $('verify').addEventListener('click', verify);
+      $('v-sign').addEventListener('click', signVoucher);
+      $('v-verify').addEventListener('click', verifyVoucher);
+      $('v-encrypt').addEventListener('change', signVoucher);
       for (const id of ['lower', 'grouped', 'checked']) {
         $(id).addEventListener('change', refresh);
       }
       refresh();
       generate();
       sign();
+      signVoucher();
     </script>
   </body>
 </html>

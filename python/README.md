@@ -38,6 +38,28 @@ verify_key(key, "wrong")               # raises Base32KeyError, code 'INVALID_SI
 
 Signed keys are the same as `signKey` in the npm package, so a key signed in Node.js verifies in Python and the other way round. `tag_bytes` (4 to 32, default 5) sets the tag length.
 
+### Key templates: vouchers, activation codes, order numbers
+
+A key template packs typed fields into a signed key, so a voucher carries its campaign, expiry date and amount and a shop can check it offline. The definitions, layout and keys are the same as `base32-key/template` in the npm package (see [SPEC.md](https://github.com/ducminhquan/base32-key/blob/master/SPEC.md#key-templates)).
+
+```python
+from base32_key.template import define_key_template, presets, verify_key_templates
+
+voucher = define_key_template(presets.voucher(prefix="LC"))
+key = voucher.sign({"campaign": 12, "expires": "2026-12-31",
+                    "amount": 50000, "serial": 1}, "s3cret")
+# 'LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ'
+voucher.verify(key, "s3cret")
+# {'campaign': 12, 'expires': datetime.date(2026, 12, 31), 'amount': 50000, 'serial': 1}
+
+# Order numbers that do not reveal how many orders there are: encrypted, no tag.
+order = define_key_template({"id": 9, "fields": [{"name": "order", "type": "uint", "bits": 40}],
+                             "encrypt": True, "tagBytes": 0, "prefix": "DH"})
+order.sign({"order": 12345}, "s3cret")  # 'DH-TPV5H-CLKPF-GL6QP'
+```
+
+Fields are `uint` (`bits`, optional `unit`), `date` (`"YYYY-MM-DD"` or a `datetime.date`), `enum` (`values`) and `bool`. `verify` raises `Base32KeyError` with `INVALID_SIGNATURE` for a forged key, `UNKNOWN_TEMPLATE` for a key of another template and `EXPIRED` after the `expires` field's date (pass `today=` for the local date where the key is redeemed). `verify_key_templates` checks a key against several templates and returns `(template, values)`. The presets are `voucher`, `activation` and `member`, and take overrides such as `encrypt=True` or `tag_bytes=8`.
+
 ### Options
 
 All options are keyword arguments, with the same defaults as the npm package:
@@ -69,6 +91,11 @@ base32-key decode --normalize "222et 3zzgn"
 base32-key validate --groups 4 --json K7RQX-2HMTD-9WCJA-PNE4F
 base32-key generate --count 5
 base32-key encode --file data.bin      # bytes with their length
+
+export BASE32_KEY_SECRET=...           # sign and verify read the secret from here
+base32-key sign --preset voucher --set campaign=12 --set expires=2026-12-31 \
+  --set amount=50000 --serial-from 1 --count 1000 --csv > vouchers.csv
+base32-key verify --preset voucher 262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ
 ```
 
 The commands and flags are the same as the npm CLI; values are read from standard input when none are given.

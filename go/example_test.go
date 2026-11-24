@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"time"
 
 	base32key "github.com/ducminhquan/base32-key/go"
 )
@@ -103,4 +104,40 @@ func ExampleSignKey() {
 	// 222BA-22222-22BCC-8255N-DK73S
 	// [0 0 1 42]
 	// Invalid key: the signature does not match
+}
+
+func ExampleKeyTemplate() {
+	d := base32key.VoucherPreset()
+	d.Prefix = "LC"
+	voucher, _ := base32key.NewKeyTemplate(d)
+	secret := []byte("s3cret")
+	key, _ := voucher.Sign(map[string]any{
+		"campaign": 12, "expires": "2026-12-31", "amount": 50000, "serial": 1,
+	}, secret)
+	fmt.Println(key)
+
+	today := time.Date(2026, 11, 24, 0, 0, 0, 0, time.UTC)
+	values, _ := voucher.Verify(key, secret, base32key.TemplateVerifyOptions{Today: today})
+	fmt.Println(values["campaign"], values["amount"], values["expires"].(time.Time).Format("2006-01-02"))
+
+	_, err := voucher.Verify(key, secret, base32key.TemplateVerifyOptions{Today: today.AddDate(1, 0, 0)})
+	fmt.Println(err)
+	// Output:
+	// LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ
+	// 12 50000 2026-12-31
+	// Invalid key: it expired on 2026-12-31
+}
+
+func ExampleParseKeyTemplate() {
+	// Order numbers: encrypted, no signature, so they do not reveal a count.
+	order, _ := base32key.ParseKeyTemplate([]byte(`{"id": 9, "prefix": "DH",
+		"fields": [{"name": "order", "type": "uint", "bits": 40}],
+		"encrypt": true, "tagBytes": 0}`))
+	for _, n := range []int{12345, 12346} {
+		key, _ := order.Sign(map[string]any{"order": n}, []byte("s3cret"))
+		fmt.Println(key)
+	}
+	// Output:
+	// DH-TPV5H-CLKPF-GL6QP
+	// DH-EB997-R7FAX-ATT27
 }

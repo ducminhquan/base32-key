@@ -238,6 +238,56 @@ To verify a key, decode it as length-prefixed bytes. Typos are caught at this st
 
 With the default `t = 5`, a forger has one chance in 2^40 (about 10^12) per guess. A signature shows who made a key. It does not show that the key is unused, so a service that redeems keys still has to record which keys it has redeemed.
 
+### Key templates
+
+A key template turns a set of typed fields into a key: a voucher with its campaign, expiry date and amount, or an order number that should not be guessable. The template is plain JSON, so every implementation reads the same definition:
+
+```json
+{
+  "id": 1,
+  "fields": [
+    { "name": "campaign", "type": "uint", "bits": 12 },
+    { "name": "expires", "type": "date" },
+    { "name": "amount", "type": "uint", "bits": 16, "unit": 1000 },
+    { "name": "serial", "type": "uint", "bits": 20 }
+  ],
+  "expires": "expires",
+  "tagBytes": 5,
+  "encrypt": false,
+  "prefix": "LC",
+  "case": "upper"
+}
+```
+
+Each field is stored as an unsigned integer of a fixed width:
+
+| Type   | Width                                     | Stored value                                                       |
+| ------ | ----------------------------------------- | ------------------------------------------------------------------ |
+| `uint` | `bits`, 1 to 48                           | `value / unit`; the value must be a multiple of `unit` (default 1) |
+| `date` | `bits`, 8 to 24 (default 16)              | days since 2020-01-01 (UTC); dates are written `YYYY-MM-DD`        |
+| `enum` | `ceil(log2(n))` for `n` values (2 to 256) | the index of the value in `values`                                 |
+| `bool` | 1                                         | 1 for true, 0 for false                                            |
+
+The fields add up to `F` bits, at most 256. With a tag of `t` bytes (`tagBytes`, 4 to 32, default 5, or 0 when `encrypt` is true), a key has `G = ceil((8 + F + 8t) / 20)` groups. Its `20G` data bits, most significant first, are:
+
+1. The **body**: `B = 20G − 8t` bits. It holds the template `id` (8 bits), then the fields in definition order, each most significant bit first, then `B − 8 − F` zero bits of padding.
+2. The **tag**: `8t` bits. They are the first `t` bytes of `HMAC-SHA256(secret, body)`, where the body is written as `ceil(B / 8)` big-endian bytes.
+
+The key is these `20G` bits encoded as `G` checked groups, with the template's prefix and letter case.
+
+With `encrypt`, the body is replaced by its encryption before the tag is computed, so the key reveals neither the fields nor the id. The cipher is a 10-round Feistel network on the `B` bits of the body. The left part is the high `L = ceil(B / 2)` bits and the right part is the low `R = B − L` bits. Round `r` (0 to 9) computes `HMAC-SHA256(secret, "B32K" || r || x)`. Here `r` is one byte and `x` is the other part as `ceil(width / 8)` big-endian bytes. The first `ceil(w / 8)` bytes of the result are read as a big-endian number and cut to the low `w` bits, where `w` is the width of the part being changed. Even rounds XOR the left part with this value computed from the right part. Odd rounds XOR the right part with this value computed from the left part. Decryption runs the rounds from 9 down to 0. The cipher is a permutation, so different field values always give different keys.
+
+To verify a key:
+
+1. Decode exactly `G` groups. Typos are caught by the check digits, and a wrong group count gives `INVALID_LENGTH`.
+2. Without `encrypt`, check that the body starts with the template `id` and ends with zero padding, else `UNKNOWN_TEMPLATE`.
+3. If `t > 0`, compare the tag in constant time, else `INVALID_SIGNATURE`.
+4. With `encrypt`, decrypt the body and then make the checks of step 2. These checks are what reject a mistyped or forged tagless key.
+5. Read the fields. An enum index past the end of `values` gives `UNKNOWN_TEMPLATE`.
+6. If the template names an `expires` field and today's date (by default the current UTC date) is after it, the result is `EXPIRED`. The key stays valid through the whole expiry date.
+
+A tagless encrypted key suits ids that should not be guessable, such as order or member numbers. It is short, and the id and padding bits give `2^-(8 + B − 8 − F)` odds that a random key decodes. For keys that must prove they were issued, keep a tag.
+
 ## Ideas not pursued
 
 ### Wider checksums

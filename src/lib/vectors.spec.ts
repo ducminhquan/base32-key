@@ -87,3 +87,20 @@ test('test-vectors.json >> group counts, auto case, formatting, suggestions', as
     expect(suggest(input, options as object)).toEqual(suggestions);
   }
 });
+
+test('test-vectors.json >> key templates', async () => {
+  const { defineKeyTemplate } = await import('./template');
+  for (const v of vectors.templates) {
+    const template = defineKeyTemplate(v.definition as never);
+    expect(await template.sign(v.values as never, v.secret)).toBe(v.key);
+    expect(
+      await template.verify(v.key, v.secret, { today: '2020-01-01' })
+    ).toEqual(v.values);
+  }
+  for (const v of vectors.invalidTemplates) {
+    const template = defineKeyTemplate(v.definition as never);
+    await expect(
+      template.verify(v.key, v.secret, { today: v.today })
+    ).rejects.toMatchObject({ code: v.code });
+  }
+});

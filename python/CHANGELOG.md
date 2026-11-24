@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 (2026-11-24)
+
+- Key templates (`base32_key.template`): `define_key_template`, `verify_key_templates` and the `voucher`, `activation` and `member` presets. Keys carry typed fields (`uint`, `date`, `enum`, `bool`), are signed with HMAC-SHA256 and can be encrypted (`encrypt=True`), for example order numbers that do not reveal a count. The same keys as `base32-key/template` in the npm package.
+- New error codes `UNKNOWN_TEMPLATE` and `EXPIRED`.
+- Command line: `sign` (with `--csv`, `--count` and `--serial-from` for batches) and `verify`. The secret is read from the `BASE32_KEY_SECRET` environment variable.
+
 ## 1.2.1 (2026-11-24)
 
 - `suggest` with `groups` no longer returns a key whose group count is still wrong (changing characters cannot add or remove a group).

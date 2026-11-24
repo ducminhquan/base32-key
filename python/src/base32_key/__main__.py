@@ -6,10 +6,13 @@ Run ``python -m base32_key --help`` or the ``base32-key`` script.
 from __future__ import annotations
 
 import argparse
+import csv
+import datetime
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Any, Callable, Sequence, TextIO
+from typing import Any, Callable, Mapping, Sequence, TextIO
 
 from . import (
     Base32KeyError,
@@ -23,6 +26,8 @@ from . import (
 )
 
 _EPILOG = "Values are read from standard input, one per line, when none are given."
+SECRET_ENV = "BASE32_KEY_SECRET"
+_SECRET_EPILOG = f"The signing secret is read from the {SECRET_ENV} environment variable."
 
 
 class _UsageError(Exception):
@@ -73,6 +78,33 @@ def _parser() -> argparse.ArgumentParser:
                           help="groups per key (default 4)")
     generate.add_argument("--count", type=_positive, default=1, metavar="N",
                           help="number of keys (default 1)")
+
+    source = argparse.ArgumentParser(add_help=False)
+    source.add_argument("--template", metavar="FILE", help="key template definition (JSON)")
+    source.add_argument("--preset", choices=["voucher", "activation", "member"],
+                        help="a ready-made template")
+    source.add_argument("--prefix", help="override the template's prefix")
+    source.add_argument("--json", action="store_true", help="print one JSON object per key")
+
+    sign = sub.add_parser("sign", parents=[source], epilog=_SECRET_EPILOG,
+                          help="make keys from a key template (vouchers, ...)")
+    sign.add_argument("--set", action="append", default=[], metavar="NAME=VALUE",
+                      help="a field value (repeat for each field)")
+    sign.add_argument("--count", type=_positive, default=1, metavar="N",
+                      help="number of keys (default 1)")
+    sign.add_argument("--serial-from", type=int, metavar="N",
+                      help="number the keys from N in --serial-field")
+    sign.add_argument("--serial-field", default="serial", metavar="NAME",
+                      help="field that --serial-from fills (default serial)")
+    sign.add_argument("--csv", action="store_true",
+                      help="print CSV with a header: key and fields")
+
+    verify = sub.add_parser("verify", parents=[source],
+                            epilog=f"{_EPILOG} {_SECRET_EPILOG}",
+                            help="check template keys and print their values")
+    verify.add_argument("--today", metavar="YYYY-MM-DD",
+                        help="date for the expiry check (default: UTC today)")
+    verify.add_argument("values", nargs="*", metavar="key")
     return parser
 
 
@@ -94,9 +126,62 @@ def _values(given: list[str], stdin: TextIO) -> list[str]:
     return [line.strip() for line in stdin.read().splitlines() if line.strip()]
 
 
+def _load_template(args: argparse.Namespace) -> Any:
+    from .template import define_key_template, presets
+
+    if args.template is not None and args.preset is not None:
+        raise _UsageError("Use --template or --preset, not both")
+    if args.template is not None:
+        definition = json.loads(Path(args.template).read_text(encoding="utf-8"))
+    elif args.preset is not None:
+        definition = getattr(presets, args.preset)()
+    else:
+        raise _UsageError("sign and verify need --template or --preset")
+    if args.prefix is not None:
+        definition = {**definition, "prefix": args.prefix}
+    return define_key_template(definition)
+
+
+def _secret(env: Mapping[str, str]) -> str:
+    secret = env.get(SECRET_ENV)
+    if not secret:
+        raise _UsageError(f"Set the signing secret in the {SECRET_ENV} environment variable")
+    return secret
+
+
+def _parse_values(template: Any, assignments: Sequence[str]) -> dict[str, Any]:
+    """Turn ``--set name=value`` into typed values for the template's fields."""
+    kinds = {f["name"]: f["type"] for f in template.definition["fields"]}
+    values: dict[str, Any] = {}
+    for assignment in assignments:
+        name, eq, raw = assignment.partition("=")
+        if not name or not eq:
+            raise _UsageError(f"--set takes name=value, got {assignment}")
+        if name not in kinds:
+            raise _UsageError(f"Unknown field {name}")
+        value: Any = raw
+        if kinds[name] == "uint":
+            try:
+                value = int(raw)
+            except ValueError:
+                pass
+        elif kinds[name] == "bool" and raw in ("true", "false"):
+            value = raw == "true"
+        values[name] = value
+    return values
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value) if isinstance(value, datetime.date) else value
+
+
 def main(argv: Sequence[str] | None = None, *, stdin: TextIO | None = None,
-         stdout: TextIO | None = None, stderr: TextIO | None = None) -> int:
+         stdout: TextIO | None = None, stderr: TextIO | None = None,
+         env: Mapping[str, str] | None = None) -> int:
     """Run the CLI and return the exit code."""
+    env = os.environ if env is None else env
     stdin = stdin or sys.stdin
     out = stdout or sys.stdout
     err = stderr or sys.stderr
@@ -110,8 +195,10 @@ def main(argv: Sequence[str] | None = None, *, stdin: TextIO | None = None,
         print("base32-key: error: missing command", file=err)
         return 2
 
-    case = args.case or ("lower" if args.lower else "upper")
-    shape: dict[str, Any] = {"grouped": not args.ungrouped, "checked": not args.unchecked}
+    templated = args.command in ("sign", "verify")
+    case: str = "upper" if templated else args.case or ("lower" if args.lower else "upper")
+    shape: dict[str, Any] = ({} if templated else
+                             {"grouped": not args.ungrouped, "checked": not args.unchecked})
     json_out = args.json
 
     def emit(text: str, data: dict[str, Any]) -> None:
@@ -183,11 +270,44 @@ def main(argv: Sequence[str] | None = None, *, stdin: TextIO | None = None,
                 where = ", ".join(str(i + 1) for i in invalid)
                 return f"{key}: invalid ({code}) in {noun} {where}", result
             each(check_one)
-        else:  # generate
+        elif args.command == "generate":
             options = {**shape, "case": encode_case()}
             for _ in range(args.count):
                 key = generate_key(groups=args.groups, **options)
                 emit(key, {"key": key})
+        elif args.command == "sign":
+            template = _load_template(args)
+            secret = _secret(env)
+            fields = [f["name"] for f in template.definition["fields"]]
+            base = _parse_values(template, args.set)
+            if args.count > 1 and args.serial_from is None:
+                raise _UsageError("--count needs --serial-from, so that every key is different")
+            writer = csv.writer(out, lineterminator="\n")
+            if args.csv:
+                writer.writerow(["key", *fields])
+            for i in range(args.count):
+                row = (base if args.serial_from is None
+                       else {**base, args.serial_field: args.serial_from + i})
+                key = template.sign(row, secret)
+                if args.csv:
+                    writer.writerow([key, *(_plain(row.get(f, "")) for f in fields)])
+                else:
+                    emit(key, {"key": key, "values": row})
+        else:  # verify
+            from .template import _days, verify_key_templates
+
+            template = _load_template(args)
+            secret = _secret(env)
+            if args.today is not None:
+                _days("--today", args.today)  # check it once, up front
+
+            def verify_one(key: str) -> tuple[str, dict[str, Any]]:
+                _, values = verify_key_templates([template], key, secret, today=args.today)
+                plain = {name: _plain(v) if isinstance(v, datetime.date) else v
+                         for name, v in values.items()}
+                text = " ".join(f"{name}={_plain(v)}" for name, v in values.items())
+                return f"{key}: valid {text}", {"values": plain}
+            each(verify_one)
     except Base32KeyError as error:
         print(error, file=err)
         return 1

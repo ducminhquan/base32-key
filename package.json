@@ -17,6 +17,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./template": {
+      "import": {
+        "types": "./dist/template.d.ts",
+        "default": "./dist/template.js"
+      },
+      "require": {
+        "types": "./dist/template.d.cts",
+        "default": "./dist/template.cjs"
+      }
+    },
     "./element": {
       "types": "./dist/element.d.ts",
       "default": "./dist/element.js"
@@ -56,7 +66,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsup",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier . --write",
@@ -109,8 +119,19 @@
     },
     {
       "name": "core library (ESM)",
-      "path": "dist/index.js",
+      "path": [
+        "dist/index.js",
+        "dist/chunk-*.js"
+      ],
       "limit": "8 kB"
+    },
+    {
+      "name": "key templates (ESM, with the core it imports)",
+      "path": [
+        "dist/template.js",
+        "dist/chunk-*.js"
+      ],
+      "limit": "10 kB"
     }
   ]
 }

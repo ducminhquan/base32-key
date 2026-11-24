@@ -267,6 +267,44 @@ await verifyKey(key, 'another secret'); // throws Base32KeyError, code 'INVALID_
 - Signed keys are grouped and use the `withLength` layout from [Bytes](#bytes). `case`, `prefix` and the decode options such as `normalize` work as usual.
 - A signature proves who made a key, not that it is unused: keep track of redeemed keys on the server.
 
+### Key templates: vouchers, activation codes, order numbers
+
+A key template packs typed fields into a key and signs it, so a till can read a voucher's campaign, expiry and amount and know it is genuine, without a database. With `encrypt`, the fields are hidden too, which turns order or member numbers into codes nobody can guess. It lives in `base32-key/template`, so the core stays small.
+
+```js
+import { defineKeyTemplate, presets } from 'base32-key/template';
+
+const voucher = defineKeyTemplate(presets.voucher({ prefix: 'LC' }));
+const key = await voucher.sign(
+  { campaign: 12, expires: '2026-12-31', amount: 50000, serial: 1 },
+  secret
+);
+// => 'LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ'
+await voucher.verify(key, secret, { today: '2026-11-24' });
+// => { campaign: 12, expires: '2026-12-31', amount: 50000, serial: 1 }
+// Throws Base32KeyError: INVALID_SIGNATURE (not ours), EXPIRED (after the date),
+// UNKNOWN_TEMPLATE (another kind of key), or the usual typo errors.
+
+const order = defineKeyTemplate({
+  id: 9,
+  fields: [{ name: 'order', type: 'uint', bits: 40 }],
+  encrypt: true, // hide the number
+  tagBytes: 0, // no signature: shortest key
+  prefix: 'DH',
+});
+await order.sign({ order: 12345 }, secret); // => 'DH-TPV5H-CLKPF-GL6QP'
+await order.sign({ order: 12346 }, secret); // => 'DH-EB997-R7FAX-ATT27'
+```
+
+- Field types: `uint` (`bits` 1 to 48, optional `unit` such as 1000 for amounts in dong), `date` (`'YYYY-MM-DD'`, 16 bits by default, up to 2199), `enum` (a list of strings) and `bool`. The definition is plain JSON, and the Python and Go ports read the same definition and make the same keys.
+- `id` (0 to 255) tells kinds of keys and versions apart. `verifyKeyTemplates([v1, v2], key, secret)` finds the template of a key.
+- `presets.voucher()` (6 groups), `presets.activation()` (6 groups) and `presets.member()` (5 groups) are ready-made definitions with ids 1 to 3. Pass overrides such as `{ prefix: 'LC', encrypt: true }`.
+- Each key grows by one group for every 20 bits of fields and tag. `tagBytes` (default 5, 40 bits) sets how hard keys are to forge.
+- Encryption maps different values to different keys, so serial numbers make unique keys without a uniqueness check. A signature still only proves who made a key: record redeemed serials on the server.
+- `verify` checks `expires` against `today`, which is the current UTC date by default. Pass the local date where the key is redeemed.
+
+The layout is specified in [SPEC.md](SPEC.md#key-templates).
+
 ### Command line
 
 ```sh
@@ -277,6 +315,13 @@ npx base32-key generate --count 5 --groups 3
 cat keys.txt | npx base32-key validate --groups 4 --json  # one key per line; exit code 1 if any is invalid
 npx base32-key encode --file logo.png   # one key holding the file's bytes
 npx base32-key decode --file copy.png <key>
+
+export BASE32_KEY_SECRET=...            # the signing secret, never on the command line
+npx base32-key sign --preset voucher --prefix LC --set campaign=12 \
+  --set expires=2026-12-31 --set amount=50000 \
+  --serial-from 1 --count 100000 --csv > vouchers.csv
+npx base32-key verify --preset voucher --prefix LC --today 2026-11-24 <key>
+npx base32-key sign --template order.json --set order=12345
 ```
 
 Options include `--case upper|lower|auto`, `--ungrouped`, `--unchecked`, `--groups`, `--normalize`, `--strict`, `--upper-hex` and `--json`. Run `npx base32-key --help` for the full list, and `npx base32-key completion bash` (or `zsh`, `fish`) for shell completion.
@@ -293,7 +338,7 @@ import vectors from 'base32-key/test-vectors.json' with { type: 'json' };
 
 ### Other languages
 
-The [python](python/) and [go](go/) folders hold ports with the same features except the browser helpers: hex and bytes encoding, per-group errors, `normalize`, `case: 'auto'`, `groups`, prefixes, input formatting, typo suggestions, random and signed keys, and a CLI. They pass the same [test-vectors.json](test-vectors.json), so a key made in one language decodes in the others.
+The [python](python/) and [go](go/) folders hold ports with the same features except the browser helpers: hex and bytes encoding, per-group errors, `normalize`, `case: 'auto'`, `groups`, prefixes, input formatting, typo suggestions, random and signed keys, key templates, and a CLI. They pass the same [test-vectors.json](test-vectors.json), so a key made in one language decodes in the others.
 
     pip install base32-key                              # Python 3.9+
     go get github.com/ducminhquan/base32-key/go@latest  # Go 1.22+

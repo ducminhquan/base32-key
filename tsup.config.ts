@@ -2,12 +2,13 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig([
   {
-    entry: { index: 'src/index.ts' },
+    // base32-key and base32-key/template share chunks, so Base32KeyError is
+    // one class across both in ES modules.
+    entry: { index: 'src/index.ts', template: 'src/template.ts' },
     format: ['esm', 'cjs'],
     target: 'es2020',
     dts: true,
     sourcemap: true,
-    clean: true,
   },
   {
     // base32-key/element: the <base32-key-input> custom element.
