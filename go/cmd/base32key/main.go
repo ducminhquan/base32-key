@@ -6,6 +6,8 @@
 //	base32key decode -normalize "222et 3zzgn"
 //	base32key validate -groups 4 K7RQX-2HMTD-9WCJA-PNE4F
 //	base32key generate -count 5
+//	BASE32_KEY_SECRET=... base32key sign -preset voucher -set campaign=12 \
+//	  -set expires=2026-12-31 -set amount=50000 -serial-from 1 -count 1000 -csv
 //
 // Values are read from standard input, one per line, when none are given.
 // Flags go before the values.
@@ -32,21 +34,25 @@ Commands:
   decode <key...>     Decode keys to hex strings
   validate <key...>   Check keys; exit code 1 if any is invalid
   generate            Generate random keys
+  sign                Make keys from a key template (vouchers, ...)
+  verify <key...>     Check template keys and print their values
   version             Print the library version
 
 Values are read from standard input, one per line, when none are given.
+sign and verify read the secret from the BASE32_KEY_SECRET environment variable.
 Run "base32key <command> -h" for the flags of a command.`
 
 type cli struct {
 	stdin          io.Reader
 	stdinIsTerm    bool
 	stdout, stderr io.Writer
+	getenv         func(string) string
 }
 
 func main() {
 	info, err := os.Stdin.Stat()
 	term := err == nil && info.Mode()&os.ModeCharDevice != 0
-	c := cli{stdin: os.Stdin, stdinIsTerm: term, stdout: os.Stdout, stderr: os.Stderr}
+	c := cli{stdin: os.Stdin, stdinIsTerm: term, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv}
 	os.Exit(c.run(os.Args[1:]))
 }
 
@@ -85,6 +91,8 @@ func (c cli) run(args []string) int {
 		fmt.Fprintln(c.stdout, base32key.Version)
 		return 0
 	case "encode", "decode", "validate", "generate":
+	case "sign", "verify":
+		return c.runTemplate(command, rest)
 	default:
 		fmt.Fprintf(c.stderr, "unknown command %q\n\n%s\n", command, usage)
 		return 2

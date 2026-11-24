@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.0 (2026-11-24)
+
+- Key templates: `NewKeyTemplate`, `ParseKeyTemplate`, `KeyTemplate.Sign` and `Verify`, `VerifyKeyTemplates`, and the `VoucherPreset`, `ActivationPreset` and `MemberPreset` definitions. Keys carry typed fields (`uint`, `date`, `enum`, `bool`), are signed with HMAC-SHA256 and can be encrypted, for example order numbers that do not reveal a count. The same keys as `base32-key/template` in the npm package.
+- New error codes `UNKNOWN_TEMPLATE` and `EXPIRED`.
+- Command line: `sign` (with `-csv`, `-count` and `-serial-from` for batches) and `verify`. The secret is read from the `BASE32_KEY_SECRET` environment variable.
+
 ## v1.2.1 (2026-11-24)
 
 - Normalized input is split into groups by character, not byte, so non-ASCII input no longer produces broken UTF-8 (found by fuzzing).

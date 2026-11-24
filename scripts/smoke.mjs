@@ -23,6 +23,24 @@ for (const [name, lib] of Object.entries({ cjs, esm })) {
   assert.ok(new lib.Base32KeyError('INVALID_HEX', 'x') instanceof Error, name);
 }
 
+for (const [name, lib] of Object.entries({
+  cjs: require('../dist/template.cjs'),
+  esm: await import('../dist/template.js'),
+})) {
+  const voucher = lib.defineKeyTemplate(lib.presets.voucher());
+  const values = {
+    campaign: 1,
+    expires: '2099-01-01',
+    amount: 1000,
+    serial: 2,
+  };
+  const key = await voucher.sign(values, 's3cret');
+  assert.deepEqual(await voucher.verify(key, 's3cret'), values, name);
+}
+// One error class across the ES module entry points.
+const templateEsm = await import('../dist/template.js');
+assert.equal(templateEsm.Base32KeyError, esm.Base32KeyError);
+
 const vectors = require('base32-key/test-vectors.json');
 assert.equal(
   cjs.fromHexString(vectors.valid[0].hex),
@@ -34,6 +52,23 @@ const cli = (...args) =>
     encoding: 'utf8',
   });
 assert.equal(cli('encode', 'c0ffee'), '222ET-3ZZGN\n');
+assert.match(
+  execFileSync(
+    process.execPath,
+    [
+      'dist/cli.js',
+      'sign',
+      '--preset',
+      'member',
+      '--set',
+      'member=1',
+      '--set',
+      'tier=gold',
+    ],
+    { encoding: 'utf8', env: { ...process.env, BASE32_KEY_SECRET: 's3cret' } }
+  ),
+  /^([2-9A-Z]{5}-){4}[2-9A-Z]{5}\n$/
+);
 assert.equal(cli('--version'), `${require('../package.json').version}\n`);
 
 console.log(`Smoke test passed on Node ${process.version}`);

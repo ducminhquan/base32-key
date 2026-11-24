@@ -12,6 +12,16 @@ import {
   toHexString,
   validate,
 } from '../index';
+import { dateToDays, verifyKeyTemplates } from '../lib/template';
+import {
+  batch,
+  csvCell,
+  loadTemplate,
+  parseValues,
+  readSecret,
+  SECRET_ENV,
+  TemplateUsageError,
+} from './template';
 
 export interface CliIo {
   readonly stdout: (line: string) => void;
@@ -21,9 +31,19 @@ export interface CliIo {
   readonly readFile: (path: string) => Promise<Uint8Array>;
   readonly writeFile: (path: string, data: Uint8Array) => Promise<void>;
   readonly version: string;
+  /** Environment variables; the signing secret is read from here. */
+  readonly env?: Readonly<Record<string, string | undefined>>;
 }
 
-const COMMANDS = ['encode', 'decode', 'validate', 'generate', 'completion'];
+const COMMANDS = [
+  'encode',
+  'decode',
+  'validate',
+  'generate',
+  'sign',
+  'verify',
+  'completion',
+];
 
 export const USAGE = `Usage: base32-key <command> [options] [values...]
 
@@ -32,6 +52,8 @@ Commands:
   decode <key...>       Decode keys to hex strings
   validate <key...>     Check keys; exit code 1 if any is invalid
   generate              Generate random keys
+  sign                  Make keys from a key template (vouchers, ...)
+  verify <key...>       Check template keys and print their values
   completion <shell>    Print a completion script for bash, zsh or fish
 
 Values are read from standard input, one per line, when none are given.
@@ -50,9 +72,19 @@ Options:
   --file <path>         encode: encode the bytes of a file, keeping its length
                         decode: write the bytes of one such key to a file
   --count <n>           generate: number of keys (default 1)
+  --template <file>     sign, verify: key template definition (JSON)
+  --preset <name>       sign, verify: voucher, activation or member
+  --prefix <text>       sign, verify: override the template's prefix
+  --set <name=value>    sign: a field value (repeat for each field)
+  --serial-from <n>     sign: number the keys from n in --serial-field
+  --serial-field <name> sign: field that --serial-from fills (default serial)
+  --csv                 sign: print CSV with a header: key and fields
+  --today <YYYY-MM-DD>  verify: date for the expiry check (default: UTC today)
   --json                Print one JSON object per value
   -h, --help            Show this help
-  -v, --version         Show the version`;
+  -v, --version         Show the version
+
+sign and verify read the secret from the ${SECRET_ENV} environment variable.`;
 
 const OPTIONS = {
   case: { type: 'string' },
@@ -66,6 +98,14 @@ const OPTIONS = {
   file: { type: 'string' },
   count: { type: 'string' },
   json: { type: 'boolean' },
+  template: { type: 'string' },
+  preset: { type: 'string' },
+  prefix: { type: 'string' },
+  set: { type: 'string', multiple: true },
+  'serial-from': { type: 'string' },
+  'serial-field': { type: 'string' },
+  csv: { type: 'boolean' },
+  today: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const;
@@ -137,6 +177,8 @@ async function readValues(positionals: string[], io: CliIo) {
 
 /** Runs the CLI and returns the process exit code. */
 export async function run(argv: readonly string[], io: CliIo): Promise<number> {
+  // sign and verify report bad values without the usage text.
+  let templateCommand = false;
   try {
     const { values, positionals } = parseArgs({
       args: [...argv],
@@ -152,6 +194,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       return 0;
     }
     const [command, ...rest] = positionals;
+    templateCommand = command === 'sign' || command === 'verify';
     const keyCase = resolveCase(values.case, values.lower);
     const groups = positiveInteger('groups', values.groups);
     const decodeOptions: DecodeOptions = {
@@ -260,6 +303,74 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
         }
         break;
       }
+      case 'sign': {
+        const template = await loadTemplate(values, io.readFile);
+        const secret = readSecret(io.env);
+        const fields = template.definition.fields.map((f) => f.name);
+        const base = parseValues(template, values.set ?? []);
+        const count = positiveInteger('count', values.count ?? '1');
+        const serialFrom =
+          values['serial-from'] === undefined
+            ? undefined
+            : Number(values['serial-from']);
+        if (serialFrom !== undefined && !Number.isInteger(serialFrom)) {
+          throw new UsageError('--serial-from must be an integer');
+        }
+        if (values.csv) {
+          io.stdout(['key', ...fields].map(csvCell).join(','));
+        }
+        for (const v of batch(
+          base,
+          count,
+          values['serial-field'] ?? 'serial',
+          serialFrom
+        )) {
+          const key = await template.sign(v, secret);
+          if (values.csv) {
+            io.stdout([key, ...fields.map((f) => v[f])].map(csvCell).join(','));
+          } else {
+            print(key, { key, values: v });
+          }
+        }
+        break;
+      }
+      case 'verify': {
+        const template = await loadTemplate(values, io.readFile);
+        const secret = readSecret(io.env);
+        if (values.today !== undefined) {
+          dateToDays('--today', values.today); // check it once, up front
+        }
+        for (const key of await readValues(rest, io)) {
+          try {
+            const { values: fields } = await verifyKeyTemplates(
+              [template],
+              key,
+              secret,
+              { today: values.today }
+            );
+            const text = Object.entries(fields)
+              .map(([name, value]) => `${name}=${String(value)}`)
+              .join(' ');
+            print(`${key}: valid ${text}`, { input: key, values: fields });
+          } catch (caught) {
+            // --today is valid, so only key errors are left.
+            const error = caught as Base32KeyError;
+            failed = true;
+            if (json) {
+              io.stdout(
+                JSON.stringify({
+                  input: key,
+                  error: error.message,
+                  code: error.code,
+                })
+              );
+            } else {
+              io.stderr(`${key}: ${error.message}`);
+            }
+          }
+        }
+        break;
+      }
       case 'completion': {
         const script = COMPLETIONS[rest[0]];
         if (rest.length !== 1 || script === undefined) {
@@ -280,6 +391,10 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
     if (error instanceof Base32KeyError) {
       io.stderr(error.message);
       return 1;
+    }
+    if (templateCommand || error instanceof TemplateUsageError) {
+      io.stderr((error as Error).message);
+      return 2;
     }
     io.stderr(`${(error as Error).message}\n\n${USAGE}`);
     return 2;

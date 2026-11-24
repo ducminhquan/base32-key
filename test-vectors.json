@@ -1,5 +1,5 @@
 {
-  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups. signed keys come from signKey(payload, secret, { tagBytes, prefix, case }) (HMAC-SHA256 over the payload, tag truncated to tagBytes, then the withLength layout). normalized inputs decode to hex with normalize on and the given options. prefixed keys are fromHexString(hex, { prefix }). groupCount entries come from validate(key, { groups, normalize: false }). autoCase keys are decoded with toHexString(key, { case: 'auto' }). formatted entries come from formatInput(input, options) and suggestions from suggest(input, options).",
+  "$comment": "Test vectors for base32-key. Keys use the uppercase alphabet 23456789ABCDEFGHJKLMNPQRSTUVWXYZ or the lowercase alphabet abcdefghijkmnpqrstuvwxyz23456789. hex is the value without leading zeros. invalid keys are uppercase, grouped, checked and not normalized; invalidGroups are 0-based. bytes keys use the withLength layout: a first group with the byte count, then the bytes left-padded to whole groups. signed keys come from signKey(payload, secret, { tagBytes, prefix, case }) (HMAC-SHA256 over the payload, tag truncated to tagBytes, then the withLength layout). normalized inputs decode to hex with normalize on and the given options. prefixed keys are fromHexString(hex, { prefix }). groupCount entries come from validate(key, { groups, normalize: false }). autoCase keys are decoded with toHexString(key, { case: 'auto' }). formatted entries come from formatInput(input, options) and suggestions from suggest(input, options). templates entries come from defineKeyTemplate(definition).sign(values, secret) and verify back to values (dates as YYYY-MM-DD, no today needed); invalidTemplates fail verify(key, secret, { today }) with code.",
   "valid": [
     {
       "hex": "fedcba9876543210",
@@ -506,6 +506,378 @@
         "groups": 1
       },
       "suggestions": []
+    }
+  ],
+  "templates": [
+    {
+      "definition": {
+        "id": 1,
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "uint",
+            "bits": 12
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "amount",
+            "type": "uint",
+            "bits": 16,
+            "unit": 1000
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 20
+          }
+        ],
+        "expires": "expires",
+        "prefix": "LC"
+      },
+      "secret": "s3cret",
+      "values": {
+        "campaign": 12,
+        "expires": "2026-12-31",
+        "amount": 50000,
+        "serial": 1
+      },
+      "key": "LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ"
+    },
+    {
+      "definition": {
+        "id": 1,
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "uint",
+            "bits": 12
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "amount",
+            "type": "uint",
+            "bits": 16,
+            "unit": 1000
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 20
+          }
+        ],
+        "expires": "expires",
+        "encrypt": true
+      },
+      "secret": "s3cret",
+      "values": {
+        "campaign": 4095,
+        "expires": "2199-06-06",
+        "amount": 65535000,
+        "serial": 1048575
+      },
+      "key": "TUAMC-8MNK5-H4EML-W95US-3GEEE-KLSGX"
+    },
+    {
+      "definition": {
+        "id": 2,
+        "fields": [
+          {
+            "name": "product",
+            "type": "uint",
+            "bits": 16
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 24
+          }
+        ],
+        "expires": "expires",
+        "case": "lower",
+        "tagBytes": 8
+      },
+      "secret": "s3cret",
+      "values": {
+        "product": 7,
+        "expires": "2020-01-01",
+        "serial": 0
+      },
+      "key": "aiaad-qaaac-aaaaa-aaah5-5wxvh-p7j98-m4wyu"
+    },
+    {
+      "definition": {
+        "id": 3,
+        "fields": [
+          {
+            "name": "member",
+            "type": "uint",
+            "bits": 32
+          },
+          {
+            "name": "tier",
+            "type": "enum",
+            "values": ["standard", "silver", "gold", "platinum"]
+          }
+        ]
+      },
+      "secret": "s3cret",
+      "values": {
+        "member": 4294967295,
+        "tier": "gold"
+      },
+      "key": "2HZZ3-ZZZZR-J222Y-364XY-D2DWL"
+    },
+    {
+      "definition": {
+        "id": 9,
+        "fields": [
+          {
+            "name": "order",
+            "type": "uint",
+            "bits": 40
+          }
+        ],
+        "encrypt": true,
+        "tagBytes": 0,
+        "prefix": "DH"
+      },
+      "secret": "s3cret",
+      "values": {
+        "order": 12345
+      },
+      "key": "DH-TPV5H-CLKPF-GL6QP"
+    },
+    {
+      "definition": {
+        "id": 9,
+        "fields": [
+          {
+            "name": "order",
+            "type": "uint",
+            "bits": 40
+          }
+        ],
+        "encrypt": true,
+        "tagBytes": 0,
+        "prefix": "DH"
+      },
+      "secret": "s3cret",
+      "values": {
+        "order": 12346
+      },
+      "key": "DH-EB997-R7FAX-ATT27"
+    },
+    {
+      "definition": {
+        "id": 255,
+        "fields": [
+          {
+            "name": "a",
+            "type": "bool"
+          },
+          {
+            "name": "b",
+            "type": "enum",
+            "values": ["x", "y", "z"]
+          },
+          {
+            "name": "c",
+            "type": "date",
+            "bits": 8
+          },
+          {
+            "name": "d",
+            "type": "uint",
+            "bits": 48
+          },
+          {
+            "name": "e",
+            "type": "uint",
+            "bits": 1
+          }
+        ],
+        "tagBytes": 4
+      },
+      "secret": "s3cret",
+      "values": {
+        "a": true,
+        "b": "z",
+        "c": "2020-09-12",
+        "d": 281474976710655,
+        "e": 1
+      },
+      "key": "ZZHZC-ZZZZR-ZZZZR-ZYUQZ-PQHFK"
+    },
+    {
+      "definition": {
+        "id": 0,
+        "fields": [
+          {
+            "name": "n",
+            "type": "uint",
+            "bits": 3,
+            "unit": 7
+          }
+        ],
+        "encrypt": true,
+        "tagBytes": 32
+      },
+      "secret": "s3cret",
+      "values": {
+        "n": 49
+      },
+      "key": "BPGLE-RYXP9-WXBW5-AX9YR-7HPEQ-Y8H5Z-72B77-K23PA-6VPAV-XAQLH-3CC8K-DTG3K-4S3CD-7268B"
+    }
+  ],
+  "invalidTemplates": [
+    {
+      "definition": {
+        "id": 1,
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "uint",
+            "bits": 12
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "amount",
+            "type": "uint",
+            "bits": 16,
+            "unit": 1000
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 20
+          }
+        ],
+        "expires": "expires",
+        "prefix": "LC"
+      },
+      "secret": "wrong",
+      "key": "LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ",
+      "today": "2026-11-24",
+      "code": "INVALID_SIGNATURE"
+    },
+    {
+      "definition": {
+        "id": 1,
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "uint",
+            "bits": 12
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "amount",
+            "type": "uint",
+            "bits": 16,
+            "unit": 1000
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 20
+          }
+        ],
+        "expires": "expires",
+        "prefix": "LC"
+      },
+      "secret": "s3cret",
+      "key": "LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ",
+      "today": "2027-01-01",
+      "code": "EXPIRED"
+    },
+    {
+      "definition": {
+        "id": 3,
+        "fields": [
+          {
+            "name": "member",
+            "type": "uint",
+            "bits": 32
+          },
+          {
+            "name": "tier",
+            "type": "enum",
+            "values": ["standard", "silver", "gold", "platinum"]
+          }
+        ],
+        "prefix": "LC",
+        "tagBytes": 8
+      },
+      "secret": "s3cret",
+      "key": "LC-262EC-39Y2M-2EJ2F-22A2W-Q352U-DURHQ",
+      "code": "UNKNOWN_TEMPLATE"
+    },
+    {
+      "definition": {
+        "id": 9,
+        "fields": [
+          {
+            "name": "order",
+            "type": "uint",
+            "bits": 40
+          }
+        ],
+        "encrypt": true,
+        "tagBytes": 0,
+        "prefix": "DH"
+      },
+      "secret": "wrong",
+      "key": "DH-TPV5H-CLKPF-GL6QP",
+      "code": "UNKNOWN_TEMPLATE"
+    },
+    {
+      "definition": {
+        "id": 1,
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "uint",
+            "bits": 12
+          },
+          {
+            "name": "expires",
+            "type": "date"
+          },
+          {
+            "name": "amount",
+            "type": "uint",
+            "bits": 16,
+            "unit": 1000
+          },
+          {
+            "name": "serial",
+            "type": "uint",
+            "bits": 20
+          }
+        ],
+        "expires": "expires",
+        "encrypt": true
+      },
+      "secret": "wrong",
+      "key": "TUAMC-8MNK5-H4EML-W95US-3GEEE-KLSGX",
+      "today": "2026-11-24",
+      "code": "INVALID_SIGNATURE"
     }
   ]
 }

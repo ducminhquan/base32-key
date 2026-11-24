@@ -8,6 +8,8 @@
  * - `INVALID_PREFIX`: the key does not start with the expected `prefix`.
  * - `INVALID_SIGNATURE`: `verifyKey` found a well-formed key whose
  *   signature does not match the secret.
+ * - `UNKNOWN_TEMPLATE`: the key was not made with this key template.
+ * - `EXPIRED`: a key template's `expires` date has passed.
  * - `GENERATION_FAILED`: `generateKey` found no key accepted by the filter.
  * - `NO_RANDOM_SOURCE`: no secure random source is available.
  */
@@ -18,6 +20,8 @@ export type Base32KeyErrorCode =
   | 'CHECKSUM_MISMATCH'
   | 'INVALID_PREFIX'
   | 'INVALID_SIGNATURE'
+  | 'UNKNOWN_TEMPLATE'
+  | 'EXPIRED'
   | 'GENERATION_FAILED'
   | 'NO_RANDOM_SOURCE';
 

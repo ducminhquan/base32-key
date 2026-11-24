@@ -28,7 +28,7 @@ __all__ = [
     "MAX_LENGTH_PREFIXED_BYTES",
 ]
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 UPPER = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 LOWER = "abcdefghijkmnpqrstuvwxyz23456789"

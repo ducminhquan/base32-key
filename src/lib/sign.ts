@@ -31,7 +31,7 @@ function subtle(): SubtleCrypto {
   return s;
 }
 
-function resolveTagBytes(tagBytes = 5): number {
+export function resolveTagBytes(tagBytes = 5): number {
   if (!Number.isInteger(tagBytes) || tagBytes < 4 || tagBytes > 32) {
     throw new RangeError(
       `tagBytes must be an integer from 4 to 32, got ${tagBytes}`
@@ -40,7 +40,8 @@ function resolveTagBytes(tagBytes = 5): number {
   return tagBytes;
 }
 
-async function hmac(secret: SigningSecret, data: Uint8Array) {
+/** Imports a string or byte secret as an HMAC-SHA256 key, once per call site. */
+export async function hmacKey(secret: SigningSecret): Promise<CryptoKey> {
   const s = subtle();
   let key: CryptoKey;
   if (typeof secret === 'string' || secret instanceof Uint8Array) {
@@ -58,11 +59,16 @@ async function hmac(secret: SigningSecret, data: Uint8Array) {
   } else {
     key = secret;
   }
-  return new Uint8Array(await s.sign('HMAC', key, data as BufferSource));
+  return key;
+}
+
+export async function hmac(secret: SigningSecret, data: Uint8Array) {
+  const key = await hmacKey(secret);
+  return new Uint8Array(await subtle().sign('HMAC', key, data as BufferSource));
 }
 
 /** Compare two byte arrays in time that depends only on their length. */
-function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
+export function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
   let diff = a.length ^ b.length;
   for (let i = 0; i < a.length && i < b.length; ++i) {
     diff |= a[i] ^ b[i];

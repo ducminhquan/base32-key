@@ -259,3 +259,255 @@ describe('base32-key CLI', () => {
     expect((await cli(['completion', 'powershell'])).code).toBe(2);
   });
 });
+
+describe('base32-key CLI with key templates', () => {
+  const env = { BASE32_KEY_SECRET: 's3cret' };
+  const tcli = async (
+    argv: string[],
+    stdin?: string,
+    files: Map<string, Uint8Array> = new Map(),
+    environment: Record<string, string | undefined> = env
+  ) => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await run(argv, {
+      stdout: (line) => out.push(line),
+      stderr: (line) => err.push(line),
+      readStdin: async () => stdin,
+      readFile: async (path) => {
+        const data = files.get(path);
+        if (!data) throw new Error(`ENOENT: ${path}`);
+        return data;
+      },
+      writeFile: async () => undefined,
+      version: '9.9.9',
+      env: environment,
+    });
+    return { code, out, err };
+  };
+  const voucher = [
+    'sign',
+    '--preset',
+    'voucher',
+    '--prefix',
+    'LC',
+    '--set',
+    'campaign=12',
+    '--set',
+    'expires=2026-12-31',
+    '--set',
+    'amount=50000',
+  ];
+
+  test('signs a batch as CSV and verifies it', async () => {
+    const signed = await tcli([
+      ...voucher,
+      '--count',
+      '3',
+      '--serial-from',
+      '100',
+      '--csv',
+    ]);
+    expect(signed.code).toBe(0);
+    expect(signed.out[0]).toBe('key,campaign,expires,amount,serial');
+    expect(signed.out).toHaveLength(4);
+    const keys = signed.out.slice(1).map((line) => line.split(',')[0]);
+    expect(signed.out[3]).toMatch(/,12,2026-12-31,50000,102$/);
+    expect(new Set(keys).size).toBe(3);
+
+    const verified = await tcli([
+      'verify',
+      '--preset',
+      'voucher',
+      '--prefix',
+      'LC',
+      '--today',
+      '2026-11-24',
+      ...keys,
+    ]);
+    expect(verified.code).toBe(0);
+    expect(verified.out[0]).toBe(
+      `${keys[0]}: valid campaign=12 expires=2026-12-31 amount=50000 serial=100`
+    );
+    const json = await tcli(
+      [
+        'verify',
+        '--preset',
+        'voucher',
+        '--prefix',
+        'LC',
+        '--json',
+        '--today',
+        '2027-01-01',
+      ],
+      keys[0]
+    );
+    expect(json.code).toBe(1);
+    expect(JSON.parse(json.out[0])).toMatchObject({ code: 'EXPIRED' });
+    const plain = await tcli(
+      ['verify', '--preset', 'voucher', 'LC-22222'],
+      undefined
+    );
+    expect(plain.code).toBe(1);
+    expect(plain.err[0]).toMatch(/^LC-22222: /);
+  });
+
+  test('one key, from a template file, as JSON', async () => {
+    const files = new Map([
+      [
+        'order.json',
+        new TextEncoder().encode(
+          JSON.stringify({
+            id: 9,
+            fields: [
+              { name: 'order', type: 'uint', bits: 40 },
+              { name: 'paid', type: 'bool' },
+              { name: 'shop', type: 'enum', values: ['a', 'b'] },
+            ],
+            encrypt: true,
+            tagBytes: 0,
+          })
+        ),
+      ],
+    ]);
+    const signed = await tcli(
+      [
+        'sign',
+        '--template',
+        'order.json',
+        '--set',
+        'order=12345',
+        '--set',
+        'paid=true',
+        '--set',
+        'shop=b',
+        '--json',
+      ],
+      undefined,
+      files
+    );
+    const { key, values } = JSON.parse(signed.out[0]);
+    expect(values).toEqual({ order: 12345, paid: true, shop: 'b' });
+    const verified = await tcli(
+      ['verify', '--template', 'order.json', key],
+      undefined,
+      files
+    );
+    expect(verified.out[0]).toBe(`${key}: valid order=12345 paid=true shop=b`);
+    const unpaid = await tcli(
+      [
+        'sign',
+        '--template',
+        'order.json',
+        '--set',
+        'order=1',
+        '--set',
+        'paid=false',
+        '--set',
+        'shop=a',
+        '--serial-field',
+        'order',
+        '--serial-from',
+        '7',
+        '--count',
+        '2',
+        '--csv',
+      ],
+      undefined,
+      files
+    );
+    expect(
+      unpaid.out.slice(1).map((l) => l.split(',').slice(1).join(','))
+    ).toEqual(['7,false,a', '8,false,a']);
+    const bad = await tcli(
+      [
+        'sign',
+        '--template',
+        'order.json',
+        '--set',
+        'order=1',
+        '--set',
+        'paid=yes',
+        '--set',
+        'shop=a',
+      ],
+      undefined,
+      files
+    );
+    expect(bad).toMatchObject({
+      code: 2,
+      err: ['paid must be true or false, got yes'],
+    });
+  });
+
+  test('usage errors', async () => {
+    const cases: [string[], string, Record<string, string | undefined>?][] = [
+      [['sign'], 'sign and verify need --template or --preset'],
+      [
+        ['sign', '--preset', 'voucher', '--template', 'x.json'],
+        'Use --template or --preset, not both',
+      ],
+      [
+        ['sign', '--preset', 'coupon'],
+        '--preset must be voucher, activation, member',
+      ],
+      [
+        ['sign', '--preset', 'member'],
+        'Set the signing secret in the BASE32_KEY_SECRET environment variable',
+        {},
+      ],
+      [['sign', '--preset', 'member'], 'Missing field member'],
+      [
+        [
+          'verify',
+          '--preset',
+          'member',
+          '--today',
+          'soon',
+          '22222-22222-22222-22222-22222',
+        ],
+        '--today must be a date',
+      ],
+      [
+        ['sign', '--preset', 'member', '--set', 'tier'],
+        '--set takes name=value, got tier',
+      ],
+      [
+        ['sign', '--preset', 'member', '--set', 'color=red'],
+        'Unknown field color',
+      ],
+      [
+        [...voucher, '--count', '2'],
+        '--count needs --serial-from, so that every key is different',
+      ],
+      [[...voucher, '--serial-from', 'x'], '--serial-from must be an integer'],
+      [['verify', '--template', 'missing.json', 'x'], 'ENOENT: missing.json'],
+    ];
+    for (const [argv, message, environment] of cases) {
+      const result = await tcli(argv, undefined, new Map(), environment);
+      expect(result.code).toBe(2);
+      expect(result.err[0]).toContain(message);
+    }
+    const files = new Map([['bad.json', new TextEncoder().encode('{')]]);
+    expect(
+      (await tcli(['verify', '--template', 'bad.json', 'x'], undefined, files))
+        .code
+    ).toBe(2);
+    // No secret: the env object is optional.
+    const out: string[] = [];
+    const code = await run(['sign', '--preset', 'member'], {
+      stdout: (l) => out.push(l),
+      stderr: (l) => out.push(l),
+      readStdin: async () => undefined,
+      readFile: async () => new Uint8Array(),
+      writeFile: async () => undefined,
+      version: '1',
+    });
+    expect(code).toBe(2);
+  });
+
+  test('a quoted CSV cell', async () => {
+    const { csvCell } = await import('./template');
+    expect(csvCell('a,"b"')).toBe('"a,""b"""');
+  });
+});

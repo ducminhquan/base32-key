@@ -13,6 +13,7 @@ run(process.argv.slice(2), {
   readFile: async (path) => new Uint8Array(await readFile(path)),
   writeFile: (path, data) => writeFile(path, data),
   version,
+  env: process.env,
 }).then((code) => {
   process.exitCode = code;
 });
