@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [3.1.0](https://github.com/ducminhquan/base32-key/compare/v3.0.0...v3.1.0) (2026-11-24)
+
+### Features
+
+* **ports:** groups, auto case, formatting, suggestions and a CLI in Python and Go ([#22](https://github.com/ducminhquan/base32-key/issues/22)) ([0e62ba1](https://github.com/ducminhquan/base32-key/commit/0e62ba1495fe80eb7adbe2ff440c0b2971c1e6bc))
+* **ports:** random keys, signed keys, prefixes and normalize in Python and Go ([#20](https://github.com/ducminhquan/base32-key/issues/20)) ([ca0e5e4](https://github.com/ducminhquan/base32-key/commit/ca0e5e4f69f3f2f67a8a9664c5c5e2fad847c5fa))
+
+### Bug Fixes
+
+* **suggest:** never suggest a key with the wrong group count ([#23](https://github.com/ducminhquan/base32-key/issues/23)) ([282da0d](https://github.com/ducminhquan/base32-key/commit/282da0d1e6f0ad7583e9a0fb3575e3914d54c5a7))
+
 ## [3.0.0](https://github.com/ducminhquan/base32-key/compare/v2.2.0...v3.0.0) (2026-11-22)
 
 ### ⚠ BREAKING CHANGES
